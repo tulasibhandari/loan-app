@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+.env/
+venv/
+*.log
+
+# PyInstaller build
+build/
+dist/
+*.spec
+
+# VS Code or IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Templates (optional if user-specific)
+Generated Reports/
