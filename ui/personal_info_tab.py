@@ -7,6 +7,7 @@ from PyQt5.QtCore import QDate
 from nepali_datetime import date as nepali_date
 
 from models.loan_model import save_member_info
+from utils.converter import convert_to_nepali_digits
 
 
 class PersonalInfoTab(QWidget):
@@ -92,6 +93,7 @@ class PersonalInfoTab(QWidget):
 
     def save_data(self):
         dob = self.bs_dob.date().toString('yyyy-MM-dd')
+        dob_nepali = convert_to_nepali_digits(dob)
 
         data = {
             'date': self.date_field.text(),
@@ -100,7 +102,7 @@ class PersonalInfoTab(QWidget):
             'address': self.member_address.text(),
             'ward_no': self.member_address_wardno.text(),
             'phone': self.member_phone.text(), 
-            'dob_bs': dob, 
+            'dob_bs': dob_nepali, 
             'citizenship_no': self.member_citizenship_no.text(), 
             'father_name': self.member_father_name.text(), 
             'grandfather_name': self.member_grandfather_name.text(),
