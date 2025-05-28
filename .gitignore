@@ -23,3 +23,7 @@ Thumbs.db
 
 # Templates (optional if user-specific)
 Generated Reports/
+
+#Database file
+data/
+*.db

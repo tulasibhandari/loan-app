@@ -3,10 +3,14 @@ import sys
 from PyQt5.QtWidgets import QApplication
 
 from ui.main_window import MainWindow
+from models.database import initialize_db
 
 def main():
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
+
+    # Database connection to app
+    initialize_db()
 
     # Create and display main app window
     window = MainWindow()

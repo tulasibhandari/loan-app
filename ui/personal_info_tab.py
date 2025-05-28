@@ -6,6 +6,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QDate
 from nepali_datetime import date as nepali_date
 
+from models.loan_model import save_member_info
+
 
 class PersonalInfoTab(QWidget):
     def __init__(self):
@@ -78,6 +80,7 @@ class PersonalInfoTab(QWidget):
         # --- Next Button Placeholder ---
         self.next_button = QPushButton("Next")
         # self.next_button.clicked.connect(...) ← Will be connected in MainWindow
+        self.next_button.clicked.connect(self.save_data)
         form_layout.addRow(self.next_button)
 
 
@@ -86,3 +89,31 @@ class PersonalInfoTab(QWidget):
         main_layout = QVBoxLayout()
         main_layout.addWidget(scroll)
         self.setLayout(main_layout)
+
+    def save_data(self):
+        dob = self.bs_dob.date().toString('yyyy-MM-dd')
+
+        data = {
+            'date': self.date_field.text(),
+            'member_number': self.member_number.text(),
+            'member_name': self.member_name.text(),
+            'address': self.member_address.text(),
+            'ward_no': self.member_address_wardno.text(),
+            'phone': self.member_phone.text(), 
+            'dob_bs': dob, 
+            'citizenship_no': self.member_citizenship_no.text(), 
+            'father_name': self.member_father_name.text(), 
+            'grandfather_name': self.member_grandfather_name.text(),
+            'spouse_name': self.member_spouse.text(), 
+            'spouse_phone': self.member_spouse_number.text(), 
+            'business_name': self.member_business.text(), 
+            'business_address': self.member_business_address.text(),
+            'job_name': self.member_job.text(), 
+            'job_address': self.member_job_address.text(),
+        }
+
+        save_member_info(data)
+        print("✅ Member info saved successfully!")
+
+       
+
