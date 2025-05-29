@@ -34,3 +34,54 @@ def save_member_info(data: dict):
 
     conn.commit()
     conn.close()
+
+def save_loan_info(data: dict):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS loan_info (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                loan_type TEXT,
+                interest_rate TEXT,
+                loan_duration TEXT,
+                repayment_duration TEXT,
+                loan_amount TEXT,
+                loan_amount_in_words TEXT,
+                loan_completion_year TEXT,
+                loan_completion_month TEXT,
+                loan_completion_day TEXT
+            )
+        """)
+
+        cursor.execute("""
+            INSERT INTO loan_info (
+                loan_type,
+                interest_rate,
+                loan_duration,
+                repayment_duration,
+                loan_amount,
+                loan_amount_in_words,
+                loan_completion_year,
+                loan_completion_month,
+                loan_completion_day
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data['loan_type'],
+            data['interest_rate'],
+            data['loan_duration'],
+            data['repayment_duration'],
+            data['loan_amount'],
+            data['loan_amount_in_words'],
+            data['loan_completion_year'],
+            data['loan_completion_month'],
+            data['loan_completion_day']
+        ))
+
+        conn.commit()
+        conn.close()
+        print("✅ Loan info saved to database.")
+
+    except Exception as e:
+        print("❌ Error saving loan info:", e)

@@ -1,4 +1,4 @@
-
+from nepali import number
 
 def convert_to_nepali_digits(text):
     eng_to_nep = str.maketrans('0123456789', '०१२३४५६७८९')

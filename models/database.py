@@ -36,6 +36,20 @@ def initialize_db():
                 )        
         """)
     
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS loan_info(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                loan_type TEXT,
+                interest_rate TEXT,
+                loan_duration TEXT,
+                repayment_duration TEXT,
+                loan_amount TEXT,
+                loan_amount_in_words TEXT,
+                loan_completion_year TEXT,
+                loan_completion_month TEXT,
+                loan_completion_day TEXT                               
+                )
+        """)
     # Extend this with other tables like loan info, collateral info, approval_info
 
     conn.commit()
