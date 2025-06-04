@@ -1,12 +1,12 @@
 # ui/personal_info_tab.py
 from PyQt5.QtWidgets import (
-    QWidget, QFormLayout, QLineEdit, QDateEdit, QLabel, QPushButton, QVBoxLayout,
-    QScrollArea)
+    QWidget, QApplication, QFormLayout, QLineEdit, QDateEdit, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
+    QScrollArea, QMessageBox)
 
 from PyQt5.QtCore import QDate
 from nepali_datetime import date as nepali_date
 
-from models.loan_model import save_member_info
+from models.loan_model import save_or_update_member_info
 from utils.converter import convert_to_nepali_digits
 
 
@@ -30,6 +30,16 @@ class PersonalInfoTab(QWidget):
         # -- End of debug print --
         self.date_field.setText(current_bs_date)
         form_layout.addRow(QLabel("मितिः"), self.date_field)
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("🔍 Search by Member ID or Name")
+        self.search_btn = QPushButton("Search Member")
+        self.search_btn.clicked.connect(self.search_member)
+
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(self.search_input)
+        search_layout.addWidget(self.search_btn)
+        form_layout.addRow(search_layout)
 
         self.member_number = QLineEdit()
         form_layout.addRow(QLabel("सदस्य नं"), self.member_number)
@@ -114,8 +124,40 @@ class PersonalInfoTab(QWidget):
             'job_address': self.member_job_address.text(),
         }
 
-        save_member_info(data)
+        save_or_update_member_info(data)
         print("✅ Member info saved successfully!")
+        QApplication.instance().activeWindow().statusBar().showMessage("✅ सदस्य विवरण सफलतापूर्वक सुरक्षित गरियो", 5000)
 
        
+    def search_member(self):
+        keyword = self.search_input.text().strip()
+        from services.member_lookup import fetch_member_data
+        result = fetch_member_data(keyword)
+        
+        if result:
+            self.fill_form(result)
+        else:
+            QMessageBox.warning(self, " Not Found", "No member found with that ID or name")
 
+    def fill_form(self, data):
+
+        dob_str = data.get('dob_bs', '2055-01-01')
+        year, month, day = map(int, dob_str.split('-'))
+
+
+        print("🧪 Keys available in data:", data.keys())
+        self.member_number.setText(data['member_number'])
+        self.member_name.setText(data['member_name']),
+        self.member_address.setText(data['address']),
+        self.member_address_wardno.setText(data['ward_no']),
+        self.member_phone.setText(data['phone']), 
+        self.bs_dob.setDate(QDate(year, month, day)),
+        self.member_citizenship_no.setText(data['citizenship_no']), 
+        self.member_father_name.setText(data['father_name']), 
+        self.member_grandfather_name.setText(data['grandfather_name']),
+        self.member_spouse.setText(data['spouse_name']), 
+        self.member_spouse_number.setText(data.get('spouse_phone', ''))
+        self.member_business.setText(data.get('business_name', ''))
+        self.member_business_address.setText(data.get('business_address', ''))
+        self.member_job.setText(data.get('job_name', ''))
+        self.member_job_address.setText(data.get('job_address', ''))

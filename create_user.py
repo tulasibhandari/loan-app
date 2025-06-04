@@ -4,4 +4,4 @@ from models.user_model import create_user_table, add_user
 create_user_table()
 
 # ✅ Then add your admin user
-add_user("admin", "admin123", role="admin", post="System Administrator")
+add_user("test", "test123", role="admin", post="System Administrator")

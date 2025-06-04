@@ -4,7 +4,9 @@ from PyQt5.QtWidgets import (
 
 from models.loan_model import save_loan_info
 from utils.converter import convert_to_nepali_digits
-from utils.amount_to_words import convert_number_to_nepali_words 
+from utils.amount_to_words import convert_number_to_nepali_words
+
+from models.loan_scheme_model import fetch_all_loan_schemes
 
 class LoanInfoTab(QWidget):
     def __init__(self):
@@ -18,14 +20,21 @@ class LoanInfoTab(QWidget):
         form_layout = QFormLayout(content)
         scroll.setWidget(content)
 
+        # Fetch loan schemes
+        self.loan_schemes = fetch_all_loan_schemes()
+        loan_types = [scheme[0] for scheme in self.loan_schemes]
+
 
         self.loan_type = QComboBox()
-        self.loan_type.addItems(["खरखाँचो", "घरजग्गा", "घरायसी"])
+        self.loan_type.addItems(loan_types)
+        self.loan_type.currentIndexChanged.connect(self.update_interest_rate)
         form_layout.addRow("Type of Loan:", self.loan_type)
         
         self.interest_rate = QLineEdit()
-        # self.interest_rate.setValidator(QDoubleValidator(0.0, 1e9, 2))
+        self.interest_rate.setReadOnly(True)
         form_layout.addRow("Current Interest Rate:", self.interest_rate)
+
+        self.update_interest_rate()
 
         self.loan_duration = QComboBox()
         self.loan_duration.addItems(["अर्धवार्षिक", "वार्षिक", "२ वर्ष", "३ वर्ष", "४ वर्ष", "५ वर्ष"])
@@ -109,3 +118,8 @@ class LoanInfoTab(QWidget):
         except Exception as e:
             print("❌ Failed to save loan info:", e)
 
+    def update_interest_rate(self):
+        index = self.loan_type.currentIndex()
+        if index >= 0 and index < len(self.loan_schemes):
+            rate = self.loan_schemes[index][1]
+            self.interest_rate.setText(f"{rate:.2f}")

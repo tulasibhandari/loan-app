@@ -4,13 +4,13 @@ from PyQt5.QtWidgets import QApplication
 
 from ui.login_window import LoginWindow
 from ui.main_window import MainWindow
-from models.database import initialize_db
-from models.user_model import create_user_table
+from models.init_models import initialize_all
+
 
 def main():
     app = QApplication(sys.argv)
-    create_user_table()  # ensures users table is created
-
+    initialize_all()
+    
     # Hold reference globally
     app_window = {}
 

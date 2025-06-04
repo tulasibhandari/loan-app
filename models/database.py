@@ -11,6 +11,8 @@ def get_connection():
 
 def initialize_db():
     conn = get_connection()
+    conn.execute("PRAGMA journal_mode=WAL;")
+
     cur = conn.cursor()
 
     # Create Member Table
@@ -18,7 +20,7 @@ def initialize_db():
         CREATE TABLE IF NOT EXISTS member_info(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 date TEXT,
-                member_number TEXT,
+                member_number TEXT UNIQUE,
                 member_name TEXT,
                 address TEXT,
                 ward_no TEXT,
@@ -54,3 +56,5 @@ def initialize_db():
 
     conn.commit()
     conn.close()
+
+   

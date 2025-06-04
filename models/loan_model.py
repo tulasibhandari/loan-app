@@ -2,37 +2,85 @@
 from models.database import get_connection
 
 
-def save_member_info(data: dict):
+def save_or_update_member_info(data: dict):
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(""" 
-        INSERT INTO member_info(
-                   date, member_number, member_name, address, ward_no,
-                   phone, dob_bs, citizenship_no, father_name, grandfather_name,
-                   spouse_name, spouse_phone, business_name, business_address,
-                   job_name, job_address
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    """, (
-        data['date'],
-        data['member_number'],
-        data['member_name'],
-        data['address'],
-        data['ward_no'],
-        data['phone'],
-        data['dob_bs'],
-        data['citizenship_no'],
-        data['father_name'],
-        data['grandfather_name'],
-        data['spouse_name'],
-        data['spouse_phone'],
-        data['business_name'],
-        data['business_address'],
-        data['job_name'],
-        data['job_address'],
-    ))
-
+    # Ensure correct format
+    data['member_number'] = str(data['member_number']).strip().zfill(9)  # Moved before SELECT
+    cursor.execute("SELECT id FROM member_info WHERE member_number=?", (data['member_number'],))
+    row = cursor.fetchone()
+     
+    if row:
+        # update the existing row
+        cursor.execute("""
+            UPDATE member_info SET
+                date=?,
+                member_name=?, 
+                address=?, 
+                ward_no=?,
+                phone=?, 
+                dob_bs=?, 
+                citizenship_no=?, 
+                father_name=?, 
+                grandfather_name=?,
+                spouse_name=?, 
+                spouse_phone=?, 
+                business_name=?, 
+                business_address=?,
+                job_name=?, 
+                job_address=?
+            WHERE member_number=?
+        """, (
+            data['date'],
+            data['member_name'],
+            data['address'],
+            data['ward_no'],
+            data['phone'],
+            data['dob_bs'],
+            data['citizenship_no'],
+            data['father_name'],
+            data['grandfather_name'],
+            data['spouse_name'],
+            data['spouse_phone'],
+            data['business_name'],
+            data['business_address'],
+            data['job_name'],
+            data['job_address'],
+            data['member_number']  # ✅ this was missing!
+        ))
+    else:
+        # Insert data 
+        cursor.execute(""" 
+            INSERT OR IGNORE INTO member_info(
+                    date, member_number, member_name, address, ward_no,
+                    phone, dob_bs, citizenship_no, father_name, grandfather_name,
+                    spouse_name, spouse_phone, business_name, business_address,
+                    job_name, job_address
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            data['date'],
+            data['member_number'],
+            data['member_name'],
+            data['address'],
+            data['ward_no'],
+            data['phone'],
+            data['dob_bs'],
+            data['citizenship_no'],
+            data['father_name'],
+            data['grandfather_name'],
+            data['spouse_name'],
+            data['spouse_phone'],
+            data['business_name'],
+            data['business_address'],
+            data['job_name'],
+            data['job_address'],
+            
+        ))
+    
+    print(f"🔄 Saving/Updating: {data['member_number']}")
     conn.commit()
+    print("✅ DB commit complete")
     conn.close()
 
 def save_loan_info(data: dict):

@@ -12,6 +12,7 @@ from ui.collateral_tab import CollateralTab
 from ui.approval_tab import ApprovalTab
 from ui.reports_tab import ReportsTab
 from ui.setting_tab import SettingsTab
+from ui.loan_scheme_window import LoanSchemeManager
 
 from models.user_model import get_user_role
 
@@ -29,6 +30,8 @@ class MainWindow(QMainWindow):
 
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
+        
+        self.setStatusBar(QStatusBar())
 
         # --- Menu Bar ---
         menu_bar = self.menuBar()
@@ -38,6 +41,15 @@ class MainWindow(QMainWindow):
         logout_action.triggered.connect(self.logout)
         file_menu.addAction(logout_action)
 
+        # if self.role == "admin":
+        #     self.menu_bar = self.menuBar()
+        #     setup_menu = self.menu_bar.addMenu("Setup")
+
+        #     loan_scheme_action = QAction("Loan Scheme", self)
+        #     loan_scheme_action.triggered.connect(self.open_loan_scheme_window)
+        #     setup_menu.addaction(loan_scheme_action)
+        if self.role == "admin":
+            self.add_admin_menu()
         # --- Status Bar ---
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
@@ -80,7 +92,19 @@ class MainWindow(QMainWindow):
         if confirm == QMessageBox.Yes:
             self.close()
             # Optionally, re-open LoginWindow here
-        
+
+    def add_admin_menu(self):
+        menu_bar = self.menuBar()
+        setup_menu = menu_bar.addMenu("🔧 Setup")
+
+        loan_scheme_action = QAction("Loan Scheme", self)
+        loan_scheme_action.triggered.connect(self.open_loan_scheme_window)  # ✅ You need this method
+
+        setup_menu.addAction(loan_scheme_action)
+
+    def open_loan_scheme_window(self):
+        self.loan_scheme_window = LoanSchemeManager()
+        self.loan_scheme_window.show()
    
     
     
