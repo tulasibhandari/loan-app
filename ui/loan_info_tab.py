@@ -1,17 +1,34 @@
 # ui/loan_info_tab.py
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QScrollArea, QFormLayout, QComboBox, QLineEdit, QPushButton)
+    QWidget,QApplication, QLabel, QVBoxLayout, QGroupBox, QScrollArea, QFormLayout, QComboBox, QLineEdit, QPushButton)
 
 from models.loan_model import save_loan_info
 from utils.converter import convert_to_nepali_digits
 from utils.amount_to_words import convert_number_to_nepali_words
 
 from models.loan_scheme_model import fetch_all_loan_schemes
+from context import current_session
+from signal_bus import signal_bus
 
 class LoanInfoTab(QWidget):
     def __init__(self):
         super().__init__()
-        
+
+        # ✅ Define this first!
+        main_layout = QVBoxLayout()
+
+        # 📌 Member Header Group
+        header_group = QGroupBox("📋 Associated Member Information")
+        header_layout = QFormLayout()
+        self.header_label = QLabel()
+        self.header_label.setStyleSheet("font-size: 16px; font-weight: bold; color: green; padding: 4px;")
+        header_layout.addRow(self.header_label)
+        header_group.setLayout(header_layout)
+
+        main_layout.addWidget(header_group)   # ✅ Now it's valid
+        self.update_header()
+      
+      
 
         # Scroll area
         scroll = QScrollArea()
@@ -19,6 +36,8 @@ class LoanInfoTab(QWidget):
         content = QWidget()
         form_layout = QFormLayout(content)
         scroll.setWidget(content)
+       
+       
 
         # Fetch loan schemes
         self.loan_schemes = fetch_all_loan_schemes()
@@ -79,9 +98,11 @@ class LoanInfoTab(QWidget):
         form_layout.addRow(self.next_button)
 
         # --Setting layout --
-        main_layout = QVBoxLayout()
+        # main_layout = QVBoxLayout()
         main_layout.addWidget(scroll)
         self.setLayout(main_layout)
+
+        signal_bus.session_updated.connect(self.update_header)
 
     def update_amount_in_words(self):
         try:
@@ -115,6 +136,8 @@ class LoanInfoTab(QWidget):
             save_loan_info(data)
             print("✅ Loan info saved successfully!")
 
+            self.clear_form() # Clears form for next entry
+            QApplication.instance().activeWindow().statusBar().showMessage("✅ ऋण माग विवरण सफलतापूर्वक सुरक्षित गरियो", 5000)
         except Exception as e:
             print("❌ Failed to save loan info:", e)
 
@@ -123,3 +146,24 @@ class LoanInfoTab(QWidget):
         if index >= 0 and index < len(self.loan_schemes):
             rate = self.loan_schemes[index][1]
             self.interest_rate.setText(f"{rate:.2f}")
+
+
+    def update_header(self):
+        from context import current_session
+        member = current_session.get("member_number")
+        name = current_session.get("member_name")
+        if member and name:
+            self.header_label.setText(f"📌 Currently editing: {member} - {name}")
+        else:
+            self.header_label.setText("📌 No member selected")
+
+    def clear_form(self):
+        self.loan_type.setCurrentIndex(0)
+        self.loan_duration.setCurrentIndex(0)
+        self.repayment_duration.setCurrentIndex(0)
+        self.loan_amount.clear()
+        self.loan_amount_in_words.clear()
+        self.loan_completion_year.clear()
+        self.loan_completion_month.clear()
+        self.loan_completion_day.clear()
+        self.update_interest_rate()

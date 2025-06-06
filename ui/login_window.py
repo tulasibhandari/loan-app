@@ -1,10 +1,13 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QMessageBox
 from models.user_model import verify_user
+from PyQt5.QtGui import QIcon
 
 class LoginWindow(QWidget):
     def __init__(self, on_login_success):
         super().__init__()
-        self.setWindowTitle("Login")
+        self.setWindowTitle("Login | Loan")
+        self.setWindowIcon(QIcon("icons/logo.ico"))
+        self.resize(300, 100)
         self.on_login_success = on_login_success
 
         layout = QVBoxLayout()

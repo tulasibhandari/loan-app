@@ -1,3 +1,4 @@
+# ui/main_window.py
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QMenuBar, QAction, QStatusBar, QLabel, QMessageBox
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QTimer, QTime
@@ -105,6 +106,13 @@ class MainWindow(QMainWindow):
     def open_loan_scheme_window(self):
         self.loan_scheme_window = LoanSchemeManager()
         self.loan_scheme_window.show()
+
+    def refresh_member_header_in_all_tabs(self):
+        for i in range(self.tabs.count()):
+            widget = self.tabs.widget(i)
+            if hasattr(widget, 'update_header'):
+                widget.update_header()
+
    
     
     
