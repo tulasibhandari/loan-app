@@ -27,3 +27,5 @@ Generated Reports/
 #Database file
 data/
 *.db
+
+icons/
