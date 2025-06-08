@@ -47,6 +47,8 @@ class LoanInfoTab(QWidget):
         self.loan_type = QComboBox()
         self.loan_type.addItems(loan_types)
         self.loan_type.currentIndexChanged.connect(self.update_interest_rate)
+        self.loan_type.currentTextChanged.connect(self.on_loan_type_change)
+
         form_layout.addRow("Type of Loan:", self.loan_type)
         
         self.interest_rate = QLineEdit()
@@ -146,6 +148,10 @@ class LoanInfoTab(QWidget):
         if index >= 0 and index < len(self.loan_schemes):
             rate = self.loan_schemes[index][1]
             self.interest_rate.setText(f"{rate:.2f}")
+
+    def on_loan_type_change(self):
+        selected_type = self.loan_type.currentText()
+        current_session["loan_type"] = selected_type
 
 
     def update_header(self):

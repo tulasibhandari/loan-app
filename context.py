@@ -2,6 +2,7 @@
 
 current_session = {
     'member_number': '',
-    'member_name': ''
+    'member_name': '',
+    "loan_type": "", 
 }
 

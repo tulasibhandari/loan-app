@@ -5,15 +5,31 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon
 
-from models.collateral_model import save_collateral_info
+from context import current_session
+from models.collateral_model import (save_collateral_info,
+                                save_affiliated_institutions, 
+                                save_property_info,
+                                save_family_info,
+                                save_income_expense )
 from utils.converter import convert_to_nepali_digits
 
 class CollateralTab(QWidget):
     def __init__(self):
         super().__init__()
+  
 
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
+
+         # Header for associated member
+        self.header_label = QLabel()
+        self.header_label.setStyleSheet("font-size: 16px; font-weight: bold; color: green; padding: 4px;")
+        self.update_header()
+
+        header_group = QGroupBox("📌 सदस्य जानकारी")
+        header_layout = QVBoxLayout()
+        header_layout.addWidget(self.header_label)
+        header_group.setLayout(header_layout)
 
         self.stack = QStackedLayout()
         self.main_layout.addLayout(self.stack)    
@@ -41,7 +57,7 @@ class CollateralTab(QWidget):
         # self.next_button.setStyleSheet("QPushButton::menu-indicator { padding-left: 6px; }"
         #                        "QPushButton { text-align: center; padding-left: 10px; }")
         # self.next_button.setStyleSheet("QPushButton { padding-left: 10px; }")
-        self.next_button.clicked.connect(self.save_collateral_data)
+        self.next_button.clicked.connect(self.save_basic_collateral_data)
         # self.basic_form_layout.addRow(self.next_button)
        
         
@@ -89,7 +105,7 @@ class CollateralTab(QWidget):
 
         # Section 3: पारिवारीक विवरण
         self.family_group = self.create_dynamic_group(
-            title = "👩‍👩‍👧‍👧 पारिवारीक विवरण",
+            title = "👩‍👩‍👧 पारिवारीक विवरण",
             fields = [
                 "नाम",
                 "उमेर",
@@ -125,29 +141,43 @@ class CollateralTab(QWidget):
             ]
         )
         self.extended_layout.addWidget(self.income_expense_group["groupbox"])
+
+        # Save button for extended form
+        self.extended_save_button = QPushButton("Save")
+        self.extended_save_button.setIcon(QIcon('icons/icon_btn.png'))
+        self.extended_save_button.setFixedWidth(220)
+
+        save_btn_layout = QHBoxLayout()
+        save_btn_layout.addWidget(self.extended_save_button, alignment=Qt.AlignCenter)
+        self.extended_layout.addLayout(save_btn_layout)
+
+        self.extended_save_button.clicked.connect(self.save_extended_collateral_data)
+
         # --- End of extended form
 
         # Add both to stacked layout
+        self.main_layout.addWidget(header_group)
         self.stack.addWidget(self.basic_widget)
         self.stack.addWidget(self.extended_widget)
 
-        # Add a placeholder button for switching
-        self.switch_button = QPushButton("Switch Form (for testing)")
-        self.switch_button.clicked.connect(self.toggle_form)
-        self.main_layout.addWidget(self.switch_button)
-
-        # Default to basic form
-        self.stack.setCurrentWidget(self.basic_widget)
-
-    def toggle_form(self):
-        if self.stack.currentWidget() == self.basic_widget:
-            self.stack.setCurrentWidget(self.extended_widget)
+        
+    def showEvent(self, event):
+        loan_type = current_session.get("loan_type", "")
+        if loan_type == "खरखाँचो":
+            self.stack.setCurrentWidget(self.basic_widget)
         else:
-            self.stack.setCurrentWidget(self.basic_widget)   
+            self.stack.setCurrentWidget(self.extended_widget)
+        super().showEvent(event)
 
+    
 
-
-
+    def update_header(self):
+        member = current_session.get("member_number", "")
+        name = current_session.get("member_name", "")
+        if member and name:
+            self.header_label.setText(f"📌 Currently editing: {member} - {name}")
+        else:
+            self.header_label.setText("📌 No member selected.")
 
 
 
@@ -192,23 +222,82 @@ class CollateralTab(QWidget):
         self.total_saving.setText(f"{total:.2f}")
     
 
-    def save_collateral_data(self):
+    def save_extended_collateral_data(self):
+        # try:
+        #     monthly = float(self.monthly_saving.text())
+        #     child = float(self.child_saving.text())
+        #     total = monthly + child
+
+        #     data = {
+        #         'monthly_saving': convert_to_nepali_digits(monthly),
+        #         'child_saving': convert_to_nepali_digits(child),
+        #         'total_saving': convert_to_nepali_digits(total)
+        #     }
+
+        #     save_collateral_info(data)
+        #     print("✅ Collateral data saved successfully!")
+
+        # except Exception as e:
+        #     print("❌ Error saving collateral data:", e)
+
         try:
+            # Get current member number
+            member_number = current_session.get("member_number", "").strip()
+            if not member_number:
+                print("❌ No Member Selected")
+                return
+           
+            # Save affiliated institutions
+            affiliated_entries = [[field.text().strip() for field in row] for row in self.affiliated_group["rows"]]
+            save_affiliated_institutions(member_number, affiliated_entries)
+
+            # Save properties info
+            property_entries = [[field.text().strip() for field in row] for row in self.property_collateral_group["rows"]]
+            save_property_info(member_number, property_entries)
+
+            # Save family info
+            family_entries =[[field.text().strip() for field in row] for row in self.family_group["rows"]]
+            save_family_info(member_number, family_entries)
+
+            # Save Income and expense info
+            income_expense_entries = []
+            for field in self.income_expense_group["rows"][0]: # Only one
+                label =  field.placeholderText()
+                value = field.text().strip()
+                typ = "income" if "आम्दानी" in label else "expense"
+                income_expense_entries.append([label, value, typ])
+            save_income_expense(member_number, income_expense_entries)
+
+            print("✅ All Colleteral data saved successfully!")
+            
+        except Exception as e:
+            print("❌ Error saving collateral data:", e)
+
+    def save_basic_collateral_data(self):
+        try:
+            # Get current member number
+            member_number = current_session.get("member_number", "").strip()
+            if not member_number:
+                print("❌ No Member Selected")
+                return
+            
+            # Save basic saving info
             monthly = float(self.monthly_saving.text())
             child = float(self.child_saving.text())
             total = monthly + child
-
+                    
             data = {
                 'monthly_saving': convert_to_nepali_digits(monthly),
                 'child_saving': convert_to_nepali_digits(child),
                 'total_saving': convert_to_nepali_digits(total)
             }
 
-            save_collateral_info(data)
-            print("✅ Collateral data saved successfully!")
+            save_collateral_info(data, member_number)
+            print("✅ Basic Collateral data saved successfully!")
 
         except Exception as e:
-            print("❌ Error saving collateral data:", e)
+            print("❌ Error saving basic collateral data:", e)
+
 
     def create_dynamic_group(self, title, fields):
         groupbox = QGroupBox(title)

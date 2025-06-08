@@ -36,7 +36,8 @@ def initialize_db():
                 job_name TEXT,
                 job_address TEXT
                 )        
-        """)
+    """)
+    
     
     cur.execute("""
         CREATE TABLE IF NOT EXISTS loan_info(
@@ -51,9 +52,66 @@ def initialize_db():
                 loan_completion_month TEXT,
                 loan_completion_day TEXT                               
                 )
-        """)
-    # Extend this with other tables like loan info, collateral info, approval_info
+    """)
+    
+    #  Create TABLE for collateral affiliations
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS collateral_affiliations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                member_number TEXT,
+                institution TEXT,
+                address TEXT,
+                postition TEXT,
+                estimated_income TEXT,
+                remarks TEXT
+                )
+    """)
+   
+    # Create table for collateral family details
+    cur.execute ("""
+        CREATE TABLE IF NOT EXISTS collateral_properties (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                member_number TEXT,
+                owner_name TEXT,
+                father_or_spouse TEXT,
+                grandfather_or_father_inlaw TEXT,
+                district TEXT,
+                municipality_vdc TEXT,
+                sheet_no TEXT,
+                ward_no TEXT,
+                plot_no TEXT,
+                area TEXT,
+                land_type TEXT                
+                )
+    """)
+    
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS collateral_family_details(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                member_number TEXT,
+                name TEXT,
+                age TEXT,
+                relation TEXT,
+                member_of_org TEXT,
+                occupation TEXT,
+                monthly_income TEXT
+                )
+    """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS collateral_income_expense(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_number TEXT,
+            field TEXT,
+            amount TEXT,
+            type TEXT
+            )
+    """)
+   
+    
+    
+    # Extend this with other tables like loan info, collateral info, approval_info
+    
     conn.commit()
     conn.close()
 
