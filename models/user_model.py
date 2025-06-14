@@ -20,12 +20,12 @@ def create_user_table():
 def hash_password(password):
     return sha256(password.encode()).hexdigest()
 
-def add_user(username, password, role='user', post=''):
+def add_user(username, password, role='user', post='', full_name_nepali=''):
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute("INSERT INTO users (username, password, role, post) VALUES (?, ?, ?, ?)",
-                    (username, hash_password(password), role, post))
+        cur.execute("INSERT INTO users (username, password, role, post, full_name_nepali) VALUES (?, ?, ?, ?, ?)",
+                    (username, hash_password(password), role, post, full_name_nepali))
         conn.commit()
     except sqlite3.IntegrityError:
         print("⚠ Username already exists.")
@@ -51,3 +51,24 @@ def get_user_role(username):
         row = cur.fetchone()
         conn.close()
         return row[0] if row else None
+
+def get_user_details(username):
+    conn = get_connection()
+    cur  = conn.cursor()
+
+    cur.execute("SELECT username, post, full_name_nepali from users WHERE username = ?", (username,))
+    row = cur.fetchone()
+    conn.close()
+
+    if row:
+        return {'username': row[0], 'post': row[1], 'full_name_nepali': row[2]}
+    return None
+
+def get_all_users():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT username, post, full_name_nepali FROM users")
+    users = [{'username': row[0], 'post': row[1], 'full_name_nepali': row[2]} for row in cur.fetchall()]
+    conn.close()
+    return users

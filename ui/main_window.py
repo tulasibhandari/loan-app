@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(PersonalInfoTab(), "व्यक्तिगत विवरण")
         self.tabs.addTab(LoanInfoTab(), "Loan Info")
         self.tabs.addTab(CollateralTab(), "Collateral Info")
-        self.tabs.addTab(ApprovalTab(), "Approval")
+        self.tabs.addTab(ApprovalTab(self.username), "Approval")
         self.tabs.addTab(ReportsTab(), "Reports")
 
         if self.role == "admin":

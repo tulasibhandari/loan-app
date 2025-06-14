@@ -91,6 +91,7 @@ def save_loan_info(data: dict):
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS loan_info (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                member_number TEXT,
                 loan_type TEXT,
                 interest_rate TEXT,
                 loan_duration TEXT,
@@ -105,6 +106,7 @@ def save_loan_info(data: dict):
 
         cursor.execute("""
             INSERT INTO loan_info (
+                member_number,
                 loan_type,
                 interest_rate,
                 loan_duration,
@@ -114,8 +116,9 @@ def save_loan_info(data: dict):
                 loan_completion_year,
                 loan_completion_month,
                 loan_completion_day
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
+            data['member_number'],
             data['loan_type'],
             data['interest_rate'],
             data['loan_duration'],

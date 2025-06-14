@@ -124,6 +124,7 @@ class LoanInfoTab(QWidget):
             amount_in_words = convert_number_to_nepali_words(int(amount_text))
 
             data = {
+                'member_number':current_session.get("member_number"),
                 'loan_type': self.loan_type.currentText(),
                 'interest_rate': self.interest_rate.text().strip(),
                 'loan_duration': self.loan_duration.currentText(),

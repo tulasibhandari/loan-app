@@ -7,3 +7,4 @@ def initialize_all():
     initialize_db()
     create_user_table()
     create_loan_scheme_table()
+    

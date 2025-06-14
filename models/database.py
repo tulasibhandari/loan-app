@@ -42,6 +42,7 @@ def initialize_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS loan_info(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                member_number TEXT,
                 loan_type TEXT,
                 interest_rate TEXT,
                 loan_duration TEXT,
@@ -53,6 +54,18 @@ def initialize_db():
                 loan_completion_day TEXT                               
                 )
     """)
+
+    # Collateral Basic
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS collateral_basic (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        member_number TEXT,
+        monthly_saving TEXT,
+        child_saving TEXT,
+        total_saving TEXT
+        )
+    """)
+
     
     #  Create TABLE for collateral affiliations
     cur.execute("""
