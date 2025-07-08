@@ -6,3 +6,6 @@ current_session = {
     "loan_type": "", 
 }
 
+def clear_session():
+    global current_session
+    current_session.clear()

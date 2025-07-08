@@ -1,19 +1,32 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QDoubleSpinBox, QGroupBox, QTableWidget,  QTableWidgetItem
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
+                             QDoubleSpinBox, QGroupBox, QTableWidget,  QTableWidgetItem,
+                             QHeaderView)
 from PyQt5.QtGui import QIcon
 from models.loan_scheme_model import add_or_update_loan_scheme, fetch_all_loan_schemes
+from styles.app_styles import AppStyles
 
 class LoanSchemeManager(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Loan Scheme Manager")
         self.setWindowIcon(QIcon("icons/logo.ico"))
-        self.setMinimumSize(400, 300)
+        self.setMinimumSize(1000, 800)
+
+        # Apply the comprehensive stylesheet from AppStyles
+        self.setStyleSheet(AppStyles.get_main_stylesheet())
 
         layout = QVBoxLayout()
+        layout.setSpacing(AppStyles.SPACING_SMALL)
+        layout.setContentsMargins(AppStyles.PADDING_MEDIUM, AppStyles.PADDING_MEDIUM, AppStyles.PADDING_MEDIUM, AppStyles.PADDING_MEDIUM)
+
+        # Create form group
         group = QGroupBox("📋 Loan Scheme Settings")
         form_layout = QFormLayout()
+        form_layout.setSpacing(AppStyles.SPACING_SMALL)
 
+        # Input Fields
         self.loan_type_input = QLineEdit()
+        self.loan_type_input.setPlaceholderText("Enter loan type (e.g. घरायसी, कृषि)")
         self.interest_rate_input = QDoubleSpinBox()
         self.interest_rate_input.setSuffix(" %")
         self.interest_rate_input.setRange(0.0, 100.0)
@@ -24,6 +37,7 @@ class LoanSchemeManager(QWidget):
 
         self.add_button = QPushButton("Add / Update")
         self.add_button.clicked.connect(self.save_scheme)
+        self.add_button.setMinimumHeight(AppStyles.BUTTON_HEIGHT)
         form_layout.addRow(self.add_button)
 
         group.setLayout(form_layout)
@@ -34,8 +48,40 @@ class LoanSchemeManager(QWidget):
         # self.scheme_table.setHorizontalHeaderLabels(["Loan Type", "Interest Rate (%)"])
         self.scheme_table = QTableWidget(5, 3)
         self.scheme_table.setHorizontalHeaderLabels(["Loan Type", "Interest Rate", "Actions"])
+
+        # Basic table configuration
         self.scheme_table.setShowGrid(True)
         self.scheme_table.setAlternatingRowColors(True)
+        self.scheme_table.setMinimumHeight(200)
+
+        # Set fixed row height
+        self.scheme_table.verticalHeader().setDefaultSectionSize(40)
+        self.scheme_table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+
+        # Configure horizontal header with fixed widths
+        header = self.scheme_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Fixed)  # Prevent column resizing
+
+        # Set specific column widths
+        header.setDefaultSectionSize(150)  # Default width if not specified
+        header.resizeSection(0, 200)  # Loan Type column - wider
+        header.resizeSection(1, 150)  # Interest Rate column
+        header.resizeSection(2, 120)  # Actions column
+
+        # Optional: Prevent user resizing
+        header.setCascadingSectionResizes(False)
+        header.setStretchLastSection(False)
+
+        # Optional: Style the headers
+        header.setStyleSheet("""
+            QHeaderView::section {
+                background-color: #f0f2f5;
+                padding: 8px;
+                border: 1px solid #ddd;
+                font-weight: bold;
+            }
+        """)
+
         self.scheme_table.setStyleSheet("""
             QTableWidget {
                 border: 1px solid #444;
@@ -44,17 +90,20 @@ class LoanSchemeManager(QWidget):
                 background-color: #ffffff;
             }
             QTableWidget::item {
+                padding: 8px;
                 border: 1px solid #bbb;
             }
             QHeaderView::section {
+                padding: 10px;
                 background-color: #ccc;
-                border: 1px solid #888;
+                border-bottom: 2px solid #dee2e6;
             }
             QTableWidget::item:selected {
                 background-color: #a8d8ea;
                 color: black;
             }
-        """)
+        # """)
+       
 
         layout.addWidget(self.scheme_table)
         

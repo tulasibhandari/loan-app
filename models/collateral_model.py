@@ -7,7 +7,7 @@ def save_collateral_info(data: dict, member_number:str):
         cursor = conn.cursor()
 
         cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS collateral_info (
+                    CREATE TABLE IF NOT EXISTS collateral_basic (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     member_number TEXT,
                     monthly_saving TEXT,
@@ -16,7 +16,7 @@ def save_collateral_info(data: dict, member_number:str):
         """)
             
         cursor.execute("""
-            INSERT INTO collateral_info (
+            INSERT INTO collateral_basic (
                 member_number,
                 monthly_saving,
                 child_saving,
@@ -31,7 +31,7 @@ def save_collateral_info(data: dict, member_number:str):
 
         conn.commit()
         conn.close()
-        print("✅ Collateral info saved to database.")
+        print("✅ Collateral Basic info saved to database.")
     except Exception as e:
         print("❌ Error saving collateral info:", e)
 

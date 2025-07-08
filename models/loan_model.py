@@ -100,7 +100,8 @@ def save_loan_info(data: dict):
                 loan_amount_in_words TEXT,
                 loan_completion_year TEXT,
                 loan_completion_month TEXT,
-                loan_completion_day TEXT
+                loan_completion_day TEXT,
+                
             )
         """)
 
@@ -115,8 +116,9 @@ def save_loan_info(data: dict):
                 loan_amount_in_words,
                 loan_completion_year,
                 loan_completion_month,
-                loan_completion_day
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                loan_completion_day,
+                status,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)
         """, (
             data['member_number'],
             data['loan_type'],
@@ -127,7 +129,8 @@ def save_loan_info(data: dict):
             data['loan_amount_in_words'],
             data['loan_completion_year'],
             data['loan_completion_month'],
-            data['loan_completion_day']
+            data['loan_completion_day'],
+            data.get('status', 'pending')
         ))
 
         conn.commit()
@@ -136,3 +139,41 @@ def save_loan_info(data: dict):
 
     except Exception as e:
         print("❌ Error saving loan info:", e)
+    
+def has_existing_active_loan(member_number):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*) FROM loan_info
+        WHERE member_number = ? AND status in ('pending', 'approved')
+    """, (member_number,))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count > 0
+
+def fetch_all_loans():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = """
+    SELECT
+        m.member_number,
+        m.member_name,
+        l.loan_type,
+        l.loan_amount,
+        a.approved_loan_amount,
+        CASE
+            WHEN a.approved_loan_amount IS NOT NULL THEN 'Approved'
+            ELSE 'Pending'
+        END as status,
+        COALESCE(a.approval_date, '')
+    FROM member_info m
+    JOIN loan_info l ON m.member_number = l.member_number
+    LEFT JOIN approval_info a ON m.member_number = a.member_number
+    ORDER BY a.approval_date DESC        
+    """
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    conn.close()
+    return rows

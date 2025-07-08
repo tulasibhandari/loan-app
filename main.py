@@ -19,7 +19,9 @@ def main():
 
     def launch_main_app(username):
         app_window['main'] = MainWindow(username)
-        app_window['main'].show()
+        # app_window['main'].show()
+
+        app_window['main'].showMaximized()
 
     login = LoginWindow(on_login_success=launch_main_app)
     login.show()

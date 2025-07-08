@@ -9,6 +9,39 @@ class LoginWindow(QWidget):
         self.setWindowIcon(QIcon("icons/logo.ico"))
         self.resize(300, 100)
         self.on_login_success = on_login_success
+        # Apply styles
+        self.setStyleSheet("""
+            QWidget {
+                    font-family: Arial;
+                    font-size: 14px
+           }
+            
+            QLabel {
+                    color: #333;
+                    min-width: 150px;
+            }
+            QLineEdit, QDateEdit {
+                           border: 1px solid #ddd;
+                           border-radius: 4px;
+                           padding: 8px;
+                           min-width:250px;
+                           background-color: white;
+            }
+            QLineEdit:focus, QDateEdit:focus {
+                        border: 1px solid #3498db;
+            }
+            QPushButton {
+                           background-color: #4CAF50;
+                           color: white;
+                           border: none;
+                           padding: 10px 15px;
+                           border-radius: 4px;
+                           min-width: 100px;
+                           }
+            QPushButton:hover {
+                           background-color: #45a049;
+                           }                        
+        """)
 
         layout = QVBoxLayout()
 

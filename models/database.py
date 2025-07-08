@@ -56,15 +56,15 @@ def initialize_db():
     """)
 
     # Collateral Basic
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS collateral_basic (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        member_number TEXT,
-        monthly_saving TEXT,
-        child_saving TEXT,
-        total_saving TEXT
-        )
-    """)
+    # cur.execute("""
+    # CREATE TABLE IF NOT EXISTS collateral_basic (
+    #     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    #     member_number TEXT,
+    #     monthly_saving TEXT,
+    #     child_saving TEXT,
+    #     total_saving TEXT
+    #     )
+    # """)
 
     
     #  Create TABLE for collateral affiliations
@@ -122,8 +122,56 @@ def initialize_db():
     """)
    
     
-    
-    # Extend this with other tables like loan info, collateral info, approval_info
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS approval_info (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_number TEXT NOT NULL,
+            approval_date TEXT,
+            entered_by TEXT,
+            entered_post TEXT,
+            approved_by TEXT,
+            approved_post TEXT,
+            remarks TEXT
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS report_tracking (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_number TEXT NOT NULL,
+            report_type TEXT, 
+            generated_by TEXT,
+            file_path TEXT,
+            generated_date TEXT
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS collateral_projects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_number TEXT NOT NULL,
+            project_name TEXT,
+            self_investment TEXT,
+            requested_loan_amount TEXT,
+            total_cost TEXT,
+            remarks TEXT
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS loan_witness(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                member_number TEXT NOT NULL,
+                name TEXT,
+                relation TEXT,
+                address_mun TEXT,
+                ward_no TEXT,
+                address_tole TEXT,
+                age TEXT
+                );
+    """)
+
+
+    # Extend this with other required tables 
     
     conn.commit()
     conn.close()

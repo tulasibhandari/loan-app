@@ -3,7 +3,7 @@
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QGroupBox, QScrollArea,
     QFormLayout, QLineEdit, QComboBox, QPushButton, QTableWidget,
-    QTableWidgetItem, QHBoxLayout, QMessageBox
+    QTableWidgetItem, QHBoxLayout, QMessageBox, QDialog
 )
 from PyQt5.QtCore import Qt
 from nepali_datetime import date as nepali_date
@@ -12,6 +12,11 @@ from models.database import get_connection
 from context import current_session
 from services.fetch_full_member_data import fetch_all_member_related_data
 from models.user_model import get_all_users, get_user_details
+from models.approval_model import save_approval_info  # Create this service function
+from utils.converter import convert_to_nepali_digits
+from utils.amount_to_words import convert_number_to_nepali_words
+
+from ui.widgets.nepali_date_picker import NepaliDatePickerDialog
 
 class ApprovalTab(QWidget):
     def __init__(self, username):
@@ -70,6 +75,39 @@ class ApprovalTab(QWidget):
         """)
         main_form_layout.addWidget(QLabel("📋 Member Data Summary:"))
         main_form_layout.addWidget(self.summary_table)
+        # Apply styles
+        self.setStyleSheet("""
+            QWidget {
+                    font-family: Arial;
+                    font-size: 14px
+           }
+            
+            QLabel {
+                    color: #333;
+                    min-width: 150px;
+            }
+            QLineEdit, QDateEdit {
+                           border: 1px solid #ddd;
+                           border-radius: 4px;
+                           padding: 8px;
+                           min-width:250px;
+                           background-color: white;
+            }
+            QLineEdit:focus, QDateEdit:focus {
+                        border: 1px solid #3498db;
+            }
+            QPushButton {
+                           background-color: #4CAF50;
+                           color: white;
+                           border: none;
+                           padding: 10px 15px;
+                           border-radius: 4px;
+                           min-width: 100px;
+                           }
+            QPushButton:hover {
+                           background-color: #45a049;
+                           }                        
+        """)
 
        
 
@@ -81,6 +119,18 @@ class ApprovalTab(QWidget):
         current_bs_date = nepali_date.today().strftime("%Y-%m-%d")
         self.approval_date.setText(current_bs_date)
         approval_layout.addRow("Approval Date (BS):", self.approval_date)
+        # self.approval_date_btn = QPushButton("📅")
+        # self.approval_date_btn.clicked.connect(self.open_nepali_date_picker)
+        # approval_layout.addRow("Approval Date (BS):", self._horizontal(self.approval_date, self.approval_date_btn))
+        
+        # Approved Loan Amount
+        self.approved_loan_amount = QLineEdit()
+        self.approved_loan_amount.textChanged.connect(self.update_approved_loan_amount_in_words)
+        approval_layout.addRow("Approved Loan Amount (रू.):", self.approved_loan_amount)
+
+        self.approved_loan_amount_words = QLineEdit()
+        self.approved_loan_amount_words.setReadOnly(True)
+        approval_layout.addRow("In Words (नेपालीमा):", self.approved_loan_amount_words)
 
         self.entered_by = QComboBox()
         self.entered_by.setEnabled(False)
@@ -106,6 +156,11 @@ class ApprovalTab(QWidget):
         # self.next_button.clicked.connect(self.go_to_reports_tab)
         main_form_layout.addWidget(self.next_button)
 
+        # --- Save Button --
+        self.save_button = QPushButton("Save Approval Info")
+        self.save_button.clicked.connect(self.save_approval_info)
+        main_form_layout.addWidget(self.save_button)
+
         # --- Main Layout ---
         main_layout = QVBoxLayout()
         main_layout.addWidget(scroll)
@@ -113,7 +168,18 @@ class ApprovalTab(QWidget):
 
         self.populate_users()
 
-    
+    def update_approved_loan_amount_in_words(self):
+        try:
+            amount = int(self.approved_loan_amount.text().strip())
+            nepali_digits = convert_to_nepali_digits(amount)
+            nepali_words = convert_number_to_nepali_words(amount)
+
+            self.approved_loan_amount.setText(nepali_digits)
+            self.approved_loan_amount_words.setText(nepali_words)
+        except ValueError:
+            self.approved_loan_amount_word.setText("अमान्य रकम!")
+
+
     def populate_users(self):
         user_details = get_user_details(self.username)
         print("Print Current User Info:", user_details)
@@ -137,7 +203,13 @@ class ApprovalTab(QWidget):
     def update_approver_post(self):
         selected = self.approved_by.currentText()
         post = self.user_map.get(selected, "")
-        self.designation.setText(post)            
+        self.designation.setText(post) 
+
+        # 🔁 Save to session
+        current_session["entered_by"] = self.entered_by.currentText()
+        current_session["entered_by_post"] = self.entered_designation.text()
+        current_session["approved_by"] = self.approved_by.currentText()
+        current_session["approved_by_post"] = post           
 
         # Load Member data from database
         self.load_summary_data()
@@ -158,7 +230,10 @@ class ApprovalTab(QWidget):
 
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute(f"UPDATE member_info SET {field} = ? WHERE member_number = ?", (value, member_number))
+
+        column_name = field.split(".")[-1]
+       
+        cursor.execute(f"UPDATE member_info SET {column_name} = ? WHERE member_number = ?", (value, member_number))
         conn.commit()
         conn.close()
 
@@ -228,3 +303,53 @@ class ApprovalTab(QWidget):
             update_button = QPushButton("Update Data")
             update_button.clicked.connect(lambda _, k=key: self.update_field(k))
             self.summary_table.setCellWidget(row_idx, 2, update_button)
+
+    def save_approval_info(self):
+        member_number = current_session.get("member_number")
+        if not member_number:
+            QMessageBox.warning(self, "Missing Data", "No member selected.")
+            return
+
+        try:
+            amount_raw = self.approved_loan_amount.text().strip()
+            if not amount_raw or not amount_raw.isdigit():
+                QMessageBox.warning(self, "Invalid Amount", "Please enter a valid amount.")
+                return
+            
+            approved_nep = convert_to_nepali_digits(amount_raw)
+            approved_words = convert_number_to_nepali_words(int(amount_raw))
+
+            data = {
+                "member_number": member_number,
+                "approval_date": self.approval_date.text().strip(),
+                "entered_by": self.entered_by.currentText(),
+                "entered_designation": self.entered_designation.text(),
+                "approved_by": self.approved_by.currentText(),
+                "approved_designation": self.designation.text(),
+                "approved_loan_amount": approved_nep,
+                "approved_loan_amount_words": approved_words
+            }            
+            save_approval_info(data)
+            QMessageBox.information(self, "✅ Saved", "Approval info saved successfully.")
+
+            current_session["approved_loan_amount"] = approved_nep
+            current_session["approved_loan_amount_words"] = approved_words
+
+        except Exception as e:
+            QMessageBox.critical(self, "❌ Error", str(e))
+
+
+
+    # def _horizontal(self, *widgets):
+    #     box = QHBoxLayout()
+    #     for w in  widgets:
+    #         box.addWidget(w)
+    #     wrapper = QWidget()
+    #     wrapper.setLayout(box)
+    #     return wrapper
+    
+    # def open_nepali_date_picker(self):
+    #     dialog = NepaliDatePickerDialog(self)
+    #     if dialog.exec_() == QDialog.Accepted:
+    #         if dialog.selected_date:
+    #             self.approval_date.setText(dialog.selected_date.strftime("%Y-%m-%d"))

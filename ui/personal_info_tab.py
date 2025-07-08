@@ -7,7 +7,10 @@ from PyQt5.QtCore import QDate
 from PyQt5.QtGui import QIcon
 from nepali_datetime import date as nepali_date
 
+from models.database import get_connection
 from models.loan_model import save_or_update_member_info
+from models.member_model import save_member_info, update_member_info
+
 from utils.converter import convert_to_nepali_digits
 from services.member_lookup import fetch_member_data
 from context import current_session
@@ -24,6 +27,41 @@ class PersonalInfoTab(QWidget):
         content = QWidget()
         form_layout = QFormLayout(content)
         scroll.setWidget(content)
+
+        # Apply styles
+        self.setStyleSheet("""
+            QWidget {
+                    font-family: Arial;
+                    font-size: 14px
+           }
+            
+            QLabel {
+                    color: #333;
+                    min-width: 150px;
+            }
+            QLineEdit, QDateEdit {
+                           border: 1px solid #ddd;
+                           border-radius: 4px;
+                           padding: 8px;
+                           min-width:250px;
+                           background-color: white;
+            }
+            QLineEdit:focus, QDateEdit:focus {
+                        border: 1px solid #3498db;
+            }
+            QPushButton {
+                           background-color: #4CAF50;
+                           color: white;
+                           border: none;
+                           padding: 10px 15px;
+                           border-radius: 4px;
+                           min-width: 100px;
+                           }
+            QPushButton:hover {
+                           background-color: #45a049;
+                           }                        
+        """)
+
 
         # --Form Fields --
         self.date_field = QLineEdit()
@@ -91,6 +129,18 @@ class PersonalInfoTab(QWidget):
 
         self.member_job_address = QLineEdit()
         form_layout.addRow("Job Address:", self.member_job_address)
+        
+        self.email_input = QLineEdit()
+        form_layout.addRow("Email:", self.email_input)
+
+        self.profession_input = QLineEdit()
+        form_layout.addRow("Profession:", self.profession_input)
+
+        self.facebook_input = QLineEdit()
+        form_layout.addRow("Facebook Detail:", self.facebook_input)
+
+        self.whatsapp_input = QLineEdit()
+        form_layout.addRow("Whatsapp Detail:", self.whatsapp_input)
 
         # --- Next Button Placeholder ---
         self.next_button = QPushButton("Save")
@@ -114,6 +164,15 @@ class PersonalInfoTab(QWidget):
         dob = self.bs_dob.date().toString('yyyy-MM-dd')
         dob_nepali = convert_to_nepali_digits(dob)
 
+        member_number = self.member_number.text().strip()
+
+        # Determine if member exists
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM member_info WHERE member_number = ?", (member_number,))
+        exists = cursor.fetchone() is not None
+        conn.close()
+
         data = {
             'date': self.date_field.text(),
             'member_number': self.member_number.text(),
@@ -131,12 +190,30 @@ class PersonalInfoTab(QWidget):
             'business_address': self.member_business_address.text(),
             'job_name': self.member_job.text(), 
             'job_address': self.member_job_address.text(),
+            # New Fields
+            'email': self.email_input.text().strip(),
+            'profession': self.profession_input.text().strip(),
+            'facebook_detail':self.facebook_input.text().strip(),
+            'whatsapp_detail': self.whatsapp_input.text().strip(),
+            
         }
 
-        save_or_update_member_info(data)
-        print("✅ Member info saved successfully!")
-        self.clear_form()
-        QApplication.instance().activeWindow().statusBar().showMessage("✅ सदस्य विवरण सफलतापूर्वक सुरक्षित गरियो", 5000)
+        try:
+            if exists:
+                update_member_info(data)
+                QMessageBox.information(self, "Updated", "✅ सदस्य विवरण सफलतापूर्वक अपडेट गरियो।")
+            else:
+                save_member_info(data)
+            QMessageBox.information(self, "Saved", "✅ सदस्य विवरण सफलतापूर्वक सुरक्षित गरियो।")
+            self.clear_form()
+        except Exception as e:
+            print(f"❌ Error saving member info: {e}")
+            QMessageBox.critical(self, "Error", "❌ डेटा सुरक्षित गर्न सकिएन।")
+
+        # save_or_update_member_info(data)
+        # print("✅ Member info saved successfully!")
+        # self.clear_form()
+        # QApplication.instance().activeWindow().statusBar().showMessage("✅ सदस्य विवरण सफलतापूर्वक सुरक्षित गरियो", 5000)
 
        
     def search_member(self):
@@ -163,8 +240,16 @@ class PersonalInfoTab(QWidget):
 
     def fill_form(self, data):
 
-        dob_str = data.get('dob_bs', '2055-01-01')
-        year, month, day = map(int, dob_str.split('-'))
+        # dob_str = data.get('dob_bs', '2055-01-01')        
+        # year, month, day = map(int, dob_str.split('-'))
+        dob_str = data.get("dob_bs", "")
+        if dob_str:
+            dob_str = dob_str.replace('/', '-')  # Normalize to YYYY-MM-DD
+            try:
+                year, month, day = map(int, dob_str.split('-'))
+                self.bs_dob.setDate(QDate(year, month, day))
+            except ValueError:
+                print(f"⚠️ Invalid DOB format: {dob_str}")
 
 
         print("🧪 Keys available in data:", data.keys())
@@ -182,7 +267,11 @@ class PersonalInfoTab(QWidget):
         self.member_business.setText(data.get('business_name', ''))
         self.member_business_address.setText(data.get('business_address', ''))
         self.member_job.setText(data.get('job_name', ''))
-        self.member_job_address.setText(data.get('job_address', ''))
+        self.member_job_address.setText(data.get('job_address', '')),
+        self.email_input.setText(data.get('email', '')),
+        self.profession_input.setText(data.get('profession', '')),
+        self.facebook_input.setText(data.get('facebook_detail', '')),
+        self.whatsapp_input.setText(data.get('whatsapp_detail', ''))
 
         # current_session['member_number'] = data['member_number']
         # current_session['member_name'] = data['member_name']
@@ -206,6 +295,10 @@ class PersonalInfoTab(QWidget):
         self.member_business_address.clear()
         self.member_job.clear()
         self.member_job_address.clear()
+        self.email_input.clear()
+        self.profession_input.clear()
+        self.facebook_input.clear()
+        self.whatsapp_input.clear()
 
         # Clear global session
         current_session['member_number'] = ""

@@ -1,11 +1,12 @@
 # ui/collateral_tab.py
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QScrollArea, QFormLayout, QLineEdit, 
-    QPushButton, QStackedLayout, QGroupBox, QHBoxLayout)
+    QPushButton, QStackedLayout, QGroupBox, QHBoxLayout, QMessageBox)
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon
 
 from context import current_session
+from signal_bus import signal_bus
 from models.collateral_model import (save_collateral_info,
                                 save_affiliated_institutions, 
                                 save_property_info,
@@ -19,17 +20,51 @@ class CollateralTab(QWidget):
   
 
         self.main_layout = QVBoxLayout()
-        self.setLayout(self.main_layout)
+       
 
-         # Header for associated member
-        self.header_label = QLabel()
+        # 📌 Header Group
+        header_group = QGroupBox("📋 Associated Member Information")
+        header_layout = QFormLayout()
+        self.header_label = QLabel("📌 No member selected")
         self.header_label.setStyleSheet("font-size: 16px; font-weight: bold; color: green; padding: 4px;")
-        self.update_header()
-
-        header_group = QGroupBox("📌 सदस्य जानकारी")
-        header_layout = QVBoxLayout()
-        header_layout.addWidget(self.header_label)
+        header_layout.addRow(self.header_label)
         header_group.setLayout(header_layout)
+        self.main_layout.addWidget(header_group)
+
+        # Apply styles
+        self.setStyleSheet("""
+            QWidget {
+                    font-family: Arial;
+                    font-size: 14px
+           }
+            
+            QLabel {
+                    color: #333;
+                    min-width: 150px;
+            }
+            QLineEdit, QDateEdit {
+                           border: 1px solid #ddd;
+                           border-radius: 4px;
+                           padding: 8px;
+                           min-width:250px;
+                           background-color: white;
+            }
+            QLineEdit:focus, QDateEdit:focus {
+                        border: 1px solid #3498db;
+            }
+            QPushButton {
+                           background-color: #4CAF50;
+                           color: white;
+                           border: none;
+                           padding: 10px 15px;
+                           border-radius: 4px;
+                           min-width: 100px;
+                           }
+            QPushButton:hover {
+                           background-color: #45a049;
+                           }                        
+        """)
+      
 
         self.stack = QStackedLayout()
         self.main_layout.addLayout(self.stack)    
@@ -154,12 +189,38 @@ class CollateralTab(QWidget):
         self.extended_save_button.clicked.connect(self.save_extended_collateral_data)
 
         # --- End of extended form
-
+        
         # Add both to stacked layout
         self.main_layout.addWidget(header_group)
         self.stack.addWidget(self.basic_widget)
         self.stack.addWidget(self.extended_widget)
 
+        self.setLayout(self.main_layout)
+
+        # Initially disable form
+        # self.set_form_enabled(False)
+
+        # Listen for session updates
+        signal_bus.session_updated.connect(self.update_header)
+
+    # def set_form_enabled(self, enabled):
+    #     """Enable/disable form fields and buttons"""
+    #     for i in range(self.form_layout.count()):
+    #         widget = self.form_layout.itemAt(i).widget()
+    #         if widget:
+    #             widget.setEnabled(enabled)
+    #     self.save_button.setEnabled(enabled)
+
+    def update_header(self):
+        """Update header with current session"""
+        member = current_session.get("member_number")
+        name = current_session.get("member_name")
+        if member and name:
+            self.header_label.setText(f"📌 Currently editing: {member} - {name}")
+            # self.set_form_enabled(True)
+        else:
+            self.header_label.setText("📌 No member selected")
+            # self.set_form_enabled(False)
         
     def showEvent(self, event):
         loan_type = current_session.get("loan_type", "")
@@ -168,19 +229,6 @@ class CollateralTab(QWidget):
         else:
             self.stack.setCurrentWidget(self.extended_widget)
         super().showEvent(event)
-
-    
-
-    def update_header(self):
-        member = current_session.get("member_number", "")
-        name = current_session.get("member_name", "")
-        if member and name:
-            self.header_label.setText(f"📌 Currently editing: {member} - {name}")
-        else:
-            self.header_label.setText("📌 No member selected.")
-
-
-
        
     #     # Scroll area
     #     scroll = QScrollArea()
@@ -214,6 +262,35 @@ class CollateralTab(QWidget):
     #     main_layout = QVBoxLayout()
     #     main_layout.addWidget(scroll)
     #     self.setLayout(main_layout)
+    def create_dynamic_group(self, title, fields):
+        groupbox = QGroupBox(title)
+        layout = QVBoxLayout()
+        rows = []
+
+        add_button = QPushButton("➕ थप्नुहोस्")
+        layout.addWidget(add_button)
+
+        def add_row():
+            row_layout = QHBoxLayout()
+            inputs = []
+            for field in fields:
+                line = QLineEdit()
+                line.setPlaceholderText(field)
+                inputs.append(line)
+                row_layout.addWidget(line)
+            rows.append(inputs)
+            layout.insertLayout(layout.count() - 1, row_layout)
+
+        add_button.clicked.connect(add_row)
+        # Initial row on load
+        add_row()        
+        groupbox.setLayout(layout)
+
+        return {
+            "groupbox": groupbox,
+            "rows": rows,
+            "add_row": add_row
+        }
 
     def update_total_saving(self):
         m = float(self.monthly_saving.text() or 0)
@@ -244,6 +321,7 @@ class CollateralTab(QWidget):
             # Get current member number
             member_number = current_session.get("member_number", "").strip()
             if not member_number:
+                QMessageBox.warning(self, "No Member Selected", "Please select a member first.")
                 print("❌ No Member Selected")
                 return
            
@@ -267,6 +345,8 @@ class CollateralTab(QWidget):
                 typ = "income" if "आम्दानी" in label else "expense"
                 income_expense_entries.append([label, value, typ])
             save_income_expense(member_number, income_expense_entries)
+
+            QMessageBox.information(self, "Collateral", "Collateral information is saved successfully." )
 
             print("✅ All Colleteral data saved successfully!")
             
@@ -293,38 +373,14 @@ class CollateralTab(QWidget):
             }
 
             save_collateral_info(data, member_number)
+            QMessageBox.information(self, "Basic Collateral" "Basic Collateral info saved successfully.")
+            self.clear_basic_form()
             print("✅ Basic Collateral data saved successfully!")
 
         except Exception as e:
             print("❌ Error saving basic collateral data:", e)
 
-
-    def create_dynamic_group(self, title, fields):
-        groupbox = QGroupBox(title)
-        layout = QVBoxLayout()
-        rows = []
-
-        add_button = QPushButton("➕ थप्नुहोस्")
-        layout.addWidget(add_button)
-
-        def add_row():
-            row_layout = QHBoxLayout()
-            inputs = []
-            for field in fields:
-                line = QLineEdit()
-                line.setPlaceholderText(field)
-                inputs.append(line)
-                row_layout.addWidget(line)
-            rows.append(inputs)
-            layout.insertLayout(layout.count() - 1, row_layout)
-
-        add_button.clicked.connect(add_row)
-        # Initial row on load
-        add_row()        
-        groupbox.setLayout(layout)
-
-        return {
-            "groupbox": groupbox,
-            "rows": rows,
-            "add_row": add_row
-        }
+    def save_basic_form(self):
+        self.monthly_saving.clear()
+        self.child_saving.clear()
+        self.total_saving.clear()
