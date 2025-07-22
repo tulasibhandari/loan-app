@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QApplication
 from ui.login_window import LoginWindow
 from ui.main_window import MainWindow
 from models.init_models import initialize_all
+from models.user_model import ensure_default_admin
 # from models.alter_user_table import alter_users_table_add_fullname
 
 
@@ -29,5 +30,6 @@ def main():
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
+    ensure_default_admin()
     main()
 

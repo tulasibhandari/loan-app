@@ -1,3 +1,4 @@
+# styles/app_style.py
 """
 Centralized system for uniform PyQt5 application design
 """

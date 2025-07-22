@@ -1,12 +1,30 @@
 # models/database.py
 import sqlite3
-from pathlib import Path
+import os
+import sys
 
+APP_NAME = "LoanApp"
 
-DB_PATH = Path("data/loan_app.db")
+def get_appdata_path():
+    """Get a writable data directory for the app (not used since we bundle DB)"""
+    if sys.platform == "win32":
+        return os.path.join(os.environ['APPDATA'], APP_NAME)
+    else:
+        return os.path.join(os.path.expanduser("~"), f".{APP_NAME}")
+
+# Determine DB path
+if getattr(sys, 'frozen', False):
+    # Running from PyInstaller bundle
+    BASE_DIR = sys._MEIPASS  # PyInstaller temp directory
+    DB_PATH = os.path.join(BASE_DIR, "data", "loan_app.db")
+else:
+    # Running from source
+    DB_PATH = os.path.join("data", "loan_app.db")
+
+print(f"📦 Using database at: {DB_PATH}")
 
 def get_connection():
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True) # Ensure /data exists
+    """Return a SQLite3 DB connection"""
     return sqlite3.connect(DB_PATH)
 
 def initialize_db():
@@ -131,7 +149,10 @@ def initialize_db():
             entered_post TEXT,
             approved_by TEXT,
             approved_post TEXT,
-            remarks TEXT
+            remarks TEXT,
+            approved_loan_amount TEXT,
+            approved_loan_amount_words TEXT
+
         );
     """)
 
@@ -169,6 +190,16 @@ def initialize_db():
                 age TEXT
                 );
     """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS organization_profile (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_name TEXT NOT NULL,
+            address TEXT,
+            logo_path TEXT
+        );
+    """)
+    
 
 
     # Extend this with other required tables 

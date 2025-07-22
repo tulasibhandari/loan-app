@@ -47,6 +47,8 @@ class AddUserDialog(QDialog):
         self.role = QComboBox()
         self.role.addItems(["admin", "user"])
         self.post = QLineEdit()
+        self.nepali_name = QLineEdit()
+        
 
         layout.addWidget(QLabel("Username:"))
         layout.addWidget(self.username)
@@ -56,6 +58,8 @@ class AddUserDialog(QDialog):
         layout.addWidget(self.role)
         layout.addWidget(QLabel("Post:"))
         layout.addWidget(self.post)
+        layout.addWidget(QLabel("Full Name in Nepali"))
+        layout.addWidget(self.nepali_name)
 
         btn = QPushButton("Create User")
         btn.clicked.connect(self.create_user)
@@ -68,7 +72,8 @@ class AddUserDialog(QDialog):
             self.username.text(),
             self.password.text(),
             self.role.currentText(),
-            self.post.text()
+            self.post.text(),
+            self.nepali_name.text()
         )
         QMessageBox.information(self, "Success", "User added successfully.")
         self.accept()

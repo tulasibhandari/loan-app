@@ -13,6 +13,7 @@ from models.member_model import save_member_info, update_member_info
 
 from utils.converter import convert_to_nepali_digits
 from services.member_lookup import fetch_member_data
+from utils.converter import convert_to_nepali_digits
 from context import current_session
 from signal_bus import signal_bus
 
@@ -239,10 +240,13 @@ class PersonalInfoTab(QWidget):
             main_window.refresh_member_header_in_all_tabs()
 
     def fill_form(self, data):
-
+        
+        phone_nep = convert_to_nepali_digits(data.get('phone'))
         # dob_str = data.get('dob_bs', '2055-01-01')        
         # year, month, day = map(int, dob_str.split('-'))
+        
         dob_str = data.get("dob_bs", "")
+        
         if dob_str:
             dob_str = dob_str.replace('/', '-')  # Normalize to YYYY-MM-DD
             try:
@@ -256,10 +260,10 @@ class PersonalInfoTab(QWidget):
         self.member_number.setText(data['member_number'])
         self.member_name.setText(data['member_name']),
         self.member_address.setText(data['address']),
-        self.member_address_wardno.setText(data['ward_no']),
-        self.member_phone.setText(data['phone']), 
+        self.member_address_wardno.setText(convert_to_nepali_digits(data['ward_no'])),
+        self.member_phone.setText(phone_nep), 
         self.bs_dob.setDate(QDate(year, month, day)),
-        self.member_citizenship_no.setText(data['citizenship_no']), 
+        self.member_citizenship_no.setText(convert_to_nepali_digits(data['citizenship_no'])), 
         self.member_father_name.setText(data['father_name']), 
         self.member_grandfather_name.setText(data['grandfather_name']),
         self.member_spouse.setText(data['spouse_name']), 

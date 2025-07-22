@@ -1,17 +1,20 @@
 # ui/main_window.py
+import os
 from PyQt5.QtWidgets import (
     QMainWindow, QTabWidget, QMenuBar, QAction, QStatusBar, 
     QLabel, QMessageBox, QApplication, QFileDialog)
-from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtCore import QTimer, QTime
+from PyQt5.QtGui import QIcon, QFont, QFontDatabase
+from PyQt5.QtCore import Qt, QTimer, QTime
+
 
 from nepali_datetime import date as nepali_date
 
 from models.user_model import get_user_role
 from models.user_model import get_user_role
 from models.database import DB_PATH
-
+from models.organization_model import get_organization_profile
 from utils.excel_handler import ExcelHandler
+
 
 
 from ui.personal_info_tab import PersonalInfoTab
@@ -24,6 +27,8 @@ from ui.loan_scheme_window import LoanSchemeManager
 from ui.report_history_tab import ReportHistoryTab
 from ui.project_tab import ProjectTab
 from ui.loan_list_tab import LoanListTab
+from ui.organization_profile_tab import OrganizationProfileTab
+from ui.member_manager_dialog import MemberManagerDialog
 
 
 
@@ -160,7 +165,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.username = username
         self.role = get_user_role(username)
-        
+
         # Setup window properties first
         self.setup_window()
         
@@ -229,10 +234,20 @@ class MainWindow(QMainWindow):
         logout_action.triggered.connect(self.logout)
         logout_action.setStatusTip("Logout from the application")
         file_menu.addAction(logout_action)
-        
+
+        # Member View Menu
+        member_view_menu = menu_bar.addMenu("Member Manager")
+        member_manager_action = QAction("👥 Member Manager", self)
+        member_manager_action.triggered.connect(self.open_member_manager)
+        member_view_menu.addAction(member_manager_action)
+                
         # Admin Menu
         if self.role == "admin":
             self.add_admin_menu()
+            
+    def open_member_manager(self):
+        dlg = MemberManagerDialog(self)
+        dlg.exec_()       
 
     def add_admin_menu(self):
         """Add admin-specific menu items"""
@@ -260,13 +275,71 @@ class MainWindow(QMainWindow):
 
     def setup_status_bar(self):
         """Setup status bar with uniform styling and consistent information"""
+
         # self.status_bar = QStatusBar()
         # self.setStatusBar(self.status_bar)
         status_bar = QStatusBar()
         self.setStatusBar(status_bar)
 
+        
+
+        # Apply it
+        # self.company_name_label.setFont(QFont(font_family, 12, QFont.Bold))
+        # self.company_address_label.setFont(QFont(font_family, 10))
+
+        # 🏢 Load Organization Profile
+        org_profile = get_organization_profile()
+        # Load custom font
+        font_path = os.path.join("fonts", "Mukta.ttf")
+        if os.path.exists(font_path):
+            font_id = QFontDatabase.addApplicationFont(font_path)
+            if font_id != -1:
+                families = QFontDatabase.applicationFontFamilies(font_id)
+                print("✅ Loaded Font Families:", families)
+                mukta_family = families[0]
+            else:
+                print("❌ Failed to load font. Falling back.")
+                mukta_family = "Arial"
+        else:
+            print("❌ Font file not found at:", font_path)
+            kalam_family = "Arial"
+
+        # 🏢 Apply to organization labels
+        if org_profile:
+            company_name = org_profile["company_name"]
+            address = org_profile["address"]
+            logo_path = org_profile["logo_path"]
+
+            # 🖼️ Company Logo
+            if logo_path and os.path.exists(logo_path):
+                from PyQt5.QtGui import QPixmap
+                logo_pixmap = QPixmap(logo_path).scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                self.company_logo_label = QLabel()
+                self.company_logo_label.setPixmap(logo_pixmap)
+                status_bar.addPermanentWidget(self.company_logo_label)
+
+            # Company Name
+            self.company_name_label = QLabel(f"{company_name}")
+            font_name = QFont(mukta_family, 12)
+            font_name.setBold(True)
+            self.company_name_label.setFont(font_name)
+            self.company_name_label.setStyleSheet("color: #2c3e50; margin-left: 8px;")
+            status_bar.addPermanentWidget(self.company_name_label)
+
+            # Company Address
+            self.company_address_label = QLabel(f"{address}")
+            font_address = QFont(mukta_family, 10)
+            self.company_address_label.setFont(font_address)
+            self.company_address_label.setStyleSheet("color: #2c3e50; margin-left: 8px;")
+            status_bar.addPermanentWidget(self.company_address_label)
+
+            # Test applied font
+            print("Applied Font:", self.company_name_label.font().family())
+
+        
+
         # User label with styling
-        self.user_label = QLabel(f"👤 {self.username} ({self.role.title()})")
+        self.user_label = QLabel(f"{self.username} ({self.role.title()})")
         self.user_label.setProperty('statusType', 'user')
         
         # Date label with styling
@@ -323,6 +396,10 @@ class MainWindow(QMainWindow):
             self.settings_tab = SettingsTab()
             settings_index = self.tabs.addTab(self.settings_tab, "⚙️ Settings")
             self.tabs.setTabToolTip(settings_index, "Application settings and configuration")
+
+            self.org_profile_tab = OrganizationProfileTab()
+            index = self.tabs.addTab(self.org_profile_tab, "🏢 Org Profile")
+            self.tabs.setTabToolTip(index, "Manage organization details")
 
     def open_loan_scheme_window(self):
         self.loan_scheme_window = LoanSchemeManager()

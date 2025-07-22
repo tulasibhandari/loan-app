@@ -31,6 +31,7 @@ class LoanSchemeManager(QWidget):
         self.interest_rate_input.setSuffix(" %")
         self.interest_rate_input.setRange(0.0, 100.0)
         self.interest_rate_input.setSingleStep(0.1)
+        self.interest_rate_input.setMinimumHeight(20)
 
         form_layout.addRow("Loan Type:", self.loan_type_input)
         form_layout.addRow("Interest Rate:", self.interest_rate_input)
@@ -116,7 +117,11 @@ class LoanSchemeManager(QWidget):
         if loan_type:
             add_or_update_loan_scheme(loan_type, interest_rate)
             self.load_data()
-    
+        # 🎯 Clear the input fields
+        self.loan_type_input.clear()
+        self.interest_rate_input.setValue(0.0)
+        self.loan_type_input.setFocus()
+        
     def load_data(self):
         self.scheme_table.setRowCount(0)
         for row_idx, (loan_type, rate) in enumerate(fetch_all_loan_schemes()):

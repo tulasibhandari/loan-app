@@ -11,7 +11,8 @@ def create_user_table():
             username TEXT UNIQUE,
             password TEXT,
             role TEXT,
-            post TEXT    
+            post TEXT,
+            full_name_nepali TEXT               
         )
     """)
     conn.commit()
@@ -72,3 +73,23 @@ def get_all_users():
     users = [{'username': row[0], 'post': row[1], 'full_name_nepali': row[2]} for row in cur.fetchall()]
     conn.close()
     return users
+
+def ensure_default_admin():
+    """Create default admin user if no users exist."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    password = "admin123"
+    try:
+        cursor.execute("SELECT COUNT(*) FROM users")
+        count = cursor.fetchone()[0]
+        if count == 0:
+            cursor.execute("""
+                INSERT INTO users (username, password, role, post, full_name_nepali)
+                VALUES (?, ?, ?, ?, ?)
+            """, ("admin", hash_password(password), "admin", "Administrator", "एडमिन"))
+            conn.commit()
+            print("✅ Default admin user created: admin / admin123")
+    except Exception as e:
+        print("❌ Failed to ensure default admin:", e)
+    finally:
+        conn.close()

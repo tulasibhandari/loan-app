@@ -107,3 +107,54 @@ def update_member_info(data):
 
     conn.commit()
     conn.close()
+
+def fetch_all_members():
+    """ m['member_number'], m['member_name'], m['phone'], m['dob_bs'], m['citizenship_no'],
+                m['address'], m['ward_no'], m['father_name'], m['grandfather_name'],
+                m['spouse_name'], m['spouse_phone'], m['email'], m['profession'],
+                m['facebook_detail'], m['whatsapp_detail'], m['business_name'],
+                m['business_address'], m['job_name'] """
+    from models.database import get_connection
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+            SELECT member_number, member_name, address, ward_no, phone, dob_bs, citizenship_no, father_name,
+                    grandfather_name, spouse_name, spouse_phone, business_name, business_address,
+                    job_name, job_address, email, profession, facebook_detail, whatsapp_detail
+            FROM member_info
+    """)
+    rows = cur.fetchall()
+    conn.close()
+    return [
+        {
+            'member_number': r[0],
+            'member_name': r[1],
+            'address': r[2],
+            'ward_no': r[3],
+            'phone': r[4],
+            'dob_bs': r[5],
+            'citizenship_no': r[6],
+            'father_name': r[7],
+            'grandfather_name': r[8],
+            'spouse_name': r[9],
+            'spouse_phone': r[10],
+            'business_name': r[11],
+            'business_address': r[12],
+            'job_name': r[13],
+            'job_address': r[14],
+            'email': r[15],
+            'profession': r[16],
+            'facebook_detail': r[17],
+            'whatsapp_detail': r[18]
+        }
+        for r in rows
+    ]
+
+
+def delete_member(member_number):
+    from models.database import get_connection
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM member_info WHERE member_number=?", (member_number,))
+    conn.commit()
+    conn.close()
