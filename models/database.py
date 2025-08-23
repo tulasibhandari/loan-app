@@ -2,30 +2,74 @@
 import sqlite3
 import os
 import sys
+import shutil
+from pathlib import Path
 
 APP_NAME = "LoanApp"
 
-def get_appdata_path():
-    """Get a writable data directory for the app (not used since we bundle DB)"""
+# -- Old codes
+# def get_appdata_path():
+#     """Get a writable data directory for the app (not used since we bundle DB)"""
+#     if sys.platform == "win32":
+#         return os.path.join(os.environ['APPDATA'], APP_NAME)
+#     else:
+#         return os.path.join(os.path.expanduser("~"), f".{APP_NAME}")
+
+# # Determine DB path
+# if getattr(sys, 'frozen', False):
+#     # Running from PyInstaller bundle
+#     BASE_DIR = sys._MEIPASS  # PyInstaller temp directory
+#     DB_PATH = os.path.join(BASE_DIR, "data", "loan_app.db")
+# else:
+#     # Running from source
+#     DB_PATH = os.path.join("data", "loan_app.db")
+
+# print(f"📦 Using database at: {DB_PATH}")
+
+# def get_connection():
+#     """Return a SQLite3 DB connection"""
+    
+#     return sqlite3.connect(DB_PATH)
+# -- end of old codes
+
+def get_user_data_dir():
+    """Return user writeable directory for  app data"""
     if sys.platform == "win32":
-        return os.path.join(os.environ['APPDATA'], APP_NAME)
+        appdata = os.getenv('APPDATA')
+        user_dir = Path(appdata) / APP_NAME
     else:
-        return os.path.join(os.path.expanduser("~"), f".{APP_NAME}")
+        user_dir = Path.home() / f".{APP_NAME}"
+    
+    user_dir.mkdir(parents=True, exist_ok=True)
+    return user_dir
 
-# Determine DB path
-if getattr(sys, 'frozen', False):
-    # Running from PyInstaller bundle
-    BASE_DIR = sys._MEIPASS  # PyInstaller temp directory
-    DB_PATH = os.path.join(BASE_DIR, "data", "loan_app.db")
-else:
-    # Running from source
-    DB_PATH = os.path.join("data", "loan_app.db")
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and PyInstaller"""
+    if getattr(sys, 'frozen', False):
+        base_path = Path(sys._MEIPASS)
+    else:
+        base_path = Path(__file__).parent.parent
+    return base_path / relative_path
 
-print(f"📦 Using database at: {DB_PATH}")
+def get_database_path():
+    """Return path to writable DB. Copy bundled DB to user folder if needed."""
+    user_dir = get_user_data_dir()
+    user_db = user_dir / "loan_app.db"
+
+    if not user_db.exists():
+        # Copy bundled DB to user folder
+        bundled_db = resource_path('data/loan_app_bundle.db')
+        if bundled_db.exists():
+            shutil.copy2(bundled_db, user_db)
+        else:
+            print(f"❌ Bundled DB not found at: {bundled_db}")
+    
+    return str(user_db)
 
 def get_connection():
-    """Return a SQLite3 DB connection"""
-    return sqlite3.connect(DB_PATH)
+    db_path = get_database_path()
+    print(f"📦 Using database at: {db_path}")
+    return sqlite3.connect(db_path)
 
 def initialize_db():
     conn = get_connection()
@@ -45,7 +89,7 @@ def initialize_db():
                 phone TEXT,
                 dob_bs TEXT,
                 citizenship_no TEXT,
-                father_name TEXT,
+            father_name TEXT,
                 grandfather_name TEXT,
                 spouse_name TEXT,
                 spouse_phone TEXT,
@@ -199,10 +243,35 @@ def initialize_db():
             logo_path TEXT
         );
     """)
+
+    cur.execute("""
+            CREATE TABLE IF NOT EXISTS loan_info (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                member_number TEXT,
+                loan_type TEXT,
+                interest_rate TEXT,
+                loan_duration TEXT,
+                repayment_duration TEXT,
+                loan_amount TEXT,
+                loan_amount_in_words TEXT,
+                loan_completion_year TEXT,
+                loan_completion_month TEXT,
+                loan_completion_day TEXT,
+                status TEXT DEFAULT 'pending'
+                
+            )
+        """)
     
 
 
     # Extend this with other required tables 
+
+    # Add missing column if not exists (SQLite does not have IF NOT EXISTS for ALTER)
+    # So try-except to avoid error if column already exists
+    try:
+        cur.execute("ALTER TABLE loan_info ADD COLUMN status TEXT DEFAULT 'pending'")
+    except Exception as e:
+        print("Status column likely exists:", e)
     
     conn.commit()
     conn.close()

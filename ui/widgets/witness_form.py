@@ -1,30 +1,61 @@
-from PyQt5.QtWidgets import (QApplication, QDialog, QVBoxLayout, QFormLayout, QLineEdit, 
-QPushButton, QMessageBox, QLabel, QHBoxLayout, QWidget)
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (
+    QDialog, QVBoxLayout, QFormLayout,
+    QLineEdit, QPushButton, QMessageBox,
+    QLabel, QHBoxLayout
+)
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QIcon
 from models.witness_model import save_witness
 from context import current_session
-
+from styles.app_styles import AppStyles
 
 class WitnessForm(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("साक्षी विवरण")
+        self.setWindowIcon(QIcon("icons/logo.ico"))
+
+        self.resize(600, 700)
+        self.setMinimumSize(QSize(450, 300))
+
         self.setup_ui()
     
     def setup_ui(self):
+        # Apply global styles
+        self.setStyleSheet(AppStyles.get_main_stylesheet())
+
         # Main layout
         main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(
+            AppStyles.PADDING_LARGE,
+            AppStyles.PADDING_LARGE,
+            AppStyles.PADDING_LARGE,
+            AppStyles.PADDING_LARGE
+        )
+        main_layout.setSpacing(AppStyles.SPACING_MEDIUM)
 
         # Title Section
         title = QLabel("Member's Witness Info")
+        title.setStyleSheet(f"""
+            font-size: {AppStyles.FONT_LARGE};
+            font-weight: bold;
+            color: {AppStyles.TEXT_PRIMARY};
+            margin-bottom: 5px;
+        """)
+
         subtitle = QLabel("साक्षीको विवरणः")
+        subtitle.setStyleSheet(f"""
+            font-size: {AppStyles.FONT_MEDIUM};
+            color: {AppStyles.TEXT_SECONDARY};
+            margin-bottom: {AppStyles.SPACING_MEDIUM}px;
+        """)
 
         # Form Layout
         form_layout = QFormLayout()
         form_layout.setLabelAlignment(Qt.AlignLeft)
         form_layout.setFormAlignment(Qt.AlignLeft)
-        form_layout.setHorizontalSpacing(20)
-        form_layout.setVerticalSpacing(10)
+        form_layout.setHorizontalSpacing(AppStyles.SPACING_MEDIUM)
+        form_layout.setVerticalSpacing(AppStyles.SPACING_SMALL)
 
         # Add form fields
         self.member_input = self.add_form_field(form_layout, "Member Number: ", "सदस्य नं: ")
@@ -43,101 +74,36 @@ class WitnessForm(QDialog):
         button_layout.addStretch()  # Push button to the right
         
         save_button = QPushButton("Save")
-        save_button.setFixedWidth(100)
+        save_button.setMinimumHeight(AppStyles.BUTTON_HEIGHT)
+        save_button.setMinimumWidth(120)
         save_button.clicked.connect(self.save_data)
-        
         button_layout.addWidget(save_button)
 
-        # form_widget = QWidget()
-        # form_widget.setLayout(form_layout)
         # Add Widgets to main layout
         main_layout.addWidget(title)
         main_layout.addWidget(subtitle)
         main_layout.addLayout(form_layout)
         main_layout.addLayout(button_layout)
 
-        # Apply styles
-        self.apply_styles(title, subtitle)
-
         self.setLayout(main_layout)
     
     def add_form_field(self, layout, label, placeholder):
         field = QLineEdit()
         field.setPlaceholderText(placeholder)
-        layout.addRow(QLabel(label), field)
+        field.setMinimumHeight(AppStyles.INPUT_HEIGHT)
+        
+        label_widget = QLabel(label)
+        label_widget.setStyleSheet(f"min-width:{150}px;")
+
+        layout.addRow(label_widget, field)
         return field
     
-    def apply_styles(self, title, subtitle):
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #f5f5f5;
-                font-family: Arial;
-            }
-
-            QLabel {
-                color:#333;
-                font-size:14px
-            }
-                           
-            QLabel {
-                color: #333;
-                font-size: 14px;
-            }
-            
-            QLabel[title] {
-                font-size: 18px;
-                font-weight: bold;
-                color: #2c3e50;
-                margin-bottom: 5px;
-            }
-            
-            QLabel[subtitle] {
-                font-size: 16px;
-                color: #7f8c8d;
-                margin-bottom: 15px;
-            }
-            
-            QLineEdit {
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 8px;
-                min-width: 250px;
-                background-color: white;
-            }
-            
-            QLineEdit:focus {
-                border: 1px solid #3498db;
-            }
-            
-            QLabel[required]::after {
-                content: " *";
-                color: #e74c3c;
-            }
-            QPushButton {
-                background-color: #3498db;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 8px 16px;
-                font-size: 14px;
-            }
-            
-            QPushButton:hover {
-                background-color: #2980b9;
-            }
-            
-            QPushButton:pressed {
-                background-color: #1d6fa5;
-            }
-        """)
-        
-        title.setProperty("class", "title")
-        subtitle.setProperty("class", "subtitle")
-
     def save_data(self):
         member_number = current_session.get("member_number")
         if not member_number:
-            QMessageBox.warning(self, "Member Missing", "Please select a member first")
+            msg = QMessageBox()
+            msg.setStyleSheet(AppStyles.get_messagebox_stylesheet())
+            msg.warning(self, "Member Missing", "Please select a member first")
             return
         
         data = {
@@ -150,12 +116,13 @@ class WitnessForm(QDialog):
             "age": self.age_input.text().strip()
         }
 
-        save_witness(member_number, data)
-        QMessageBox.information(self, "Saved", "साक्षी विवरण सुरक्षित भयो!")
-        self.accept()
-
-if __name__ == "__main__":
-    app = QApplication([])
-    form = WitnessForm()
-    form.show()
-    app.exec_()
+        try:
+            save_witness(member_number, data)
+            msg = QMessageBox()
+            msg.setStyleSheet(AppStyles.get_messagebox_stylesheet())
+            msg.information(self, "Saved", "साक्षी विवरण सुरक्षित भयो!")
+            self.accept()
+        except Exception as e:
+            msg = QMessageBox()
+            msg.setStyleSheet(AppStyles.get_messagebox_stylesheet())
+            msg.critical(self, "Error", f"Failed to save witness:\n{e}")

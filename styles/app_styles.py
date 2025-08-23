@@ -1,4 +1,3 @@
-# styles/app_style.py
 """
 Centralized system for uniform PyQt5 application design
 """
@@ -238,12 +237,21 @@ class AppStyles:
         }}
         
         QHeaderView::section {{
-            background-color: {AppStyles.BACKGROUND_COLOR};
-            color: {AppStyles.TEXT_PRIMARY};
+            background-color: {AppStyles.PRIMARY_COLOR};
+            color: white;
             padding: 10px;
-            border: none;
+            border: 1px solid {AppStyles.BORDER_COLOR};
             border-bottom: 2px solid {AppStyles.BORDER_COLOR};
             font-weight: bold;
+            font-size: {AppStyles.FONT_NORMAL};
+            min-height: 30px;
+        }}
+        
+        QTableWidget::corner {{
+            background-color: {AppStyles.PRIMARY_COLOR};
+            border: 1px solid {AppStyles.BORDER_COLOR};
+            border-right: none;
+            border-bottom: none;
         }}
         """
     
