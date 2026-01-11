@@ -262,6 +262,38 @@ def initialize_db():
             )
         """)
     
+    cur.execute("""
+            CREATE TABLE  IF NOT EXISTS manjurinama_details (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                member_number TEXT,
+                person_name TEXT,
+                grandfather_name TEXT,
+                father_name TEXT,
+                age TEXT,
+                district TEXT,
+                muncipality TEXT,
+                wada_no TEXT,
+                tole TEXT
+            )
+        """)
+    
+    cur.execute("""
+            CREATE TABLE IF NOT EXISTS guarantor_details(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                member_number TEXT,
+                gurantor_member_number TEXT,
+                guarantor_name TEXT,
+                guarantor_address TEXT,
+                gurantor_ward TEXT,
+                guarantor_phone TEXT,
+                guarantor_citizenship TEXT,
+                guarantor_grandfather TEXT,
+                guarantor_father TEXT,
+                guarantor_issue_dist TEXT,
+                guarantor_age TEXT
+            )
+        """)
+    
 
 
     # Extend this with other required tables 

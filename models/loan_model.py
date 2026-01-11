@@ -89,6 +89,9 @@ def save_or_update_member_info(data: dict):
 def save_loan_info(data):
     conn = get_connection()
     cursor = conn.cursor()
+    
+    # ✅ ADDED Later to  Ensure consistent format
+    data['member_number'] = str(data['member_number']).strip().zfill(9)
 
     # Log input data
     logging.debug(f"Saving loan for member: {data['member_number']}, data: {data}")

@@ -131,4 +131,15 @@ def fetch_witness_detail(member_number):
             return [dict(zip(columns, row)) for row in rows]
     return []
 
-    
+def fetch_guarantor_details(member_number):
+    """ Fetch guarantor details for a member"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM guranteer_details WHERE member_number = ?", (member_number,))
+    rows = cursor.fetchall()
+    conn.close()
+
+    if rows:
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
+    return []    

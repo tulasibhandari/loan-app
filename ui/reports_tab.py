@@ -27,6 +27,8 @@ class ReportsTab(QWidget):
         self.tamasuk_template_path = None
         self.loan_approval_template_path = None
         self.authority_template_path = None
+        self.manjurinaama_template_path = None  # New for मञ्जुरीनामा
+        self.guarantor_template_path = None     # New for व्यक्तिगत जमानी
         self.approved_members = []  # Store approved members for completer
         self.setup_ui()
 
@@ -149,6 +151,35 @@ class ReportsTab(QWidget):
         layout.addWidget(self.member_dropdown)
         return header_frame
 
+    # def populate_approved_members(self):
+    #     try:
+    #         members = fetch_loan_info_members()
+    #         logging.debug(f"Raw members data from fetch_loan_info_members: {members}")
+    #         if not members:
+    #             logging.warning("No members data returned from fetch_loan_info_members")
+    #             self.show_status_message("No member data available")
+    #             return
+
+    #         self.approved_members = []
+    #         for m in members:
+    #             if len(m) > 3:
+    #                 member_number, member_name, loan_type, loan_status = m[0], m[1], m[2], m[3]
+    #                 if loan_status and loan_status.lower() == 'approved':
+    #                     display_text = f"{member_number} - {member_name or 'N/A'} ({loan_type or 'N/A'})"
+    #                     self.approved_members.append(display_text)
+    #                     logging.debug(f"Added to completer: {display_text}")
+
+    #         # Set up QCompleter
+    #         completer = QCompleter(self.approved_members, self)
+    #         completer.setCaseSensitivity(Qt.CaseInsensitive)
+    #         completer.setFilterMode(Qt.MatchContains)  # Match anywhere in the string
+    #         self.member_dropdown.setCompleter(completer)
+    #         logging.debug(f"Populated completer with {len(self.approved_members)} approved members")
+    #     except Exception as e:
+    #         logging.error(f"Error populating approved members for completer: {e}")
+    #         self.show_status_message("Failed to load approved member suggestions")
+
+    # Updated populate_approved_members
     def populate_approved_members(self):
         try:
             members = fetch_loan_info_members()
@@ -159,23 +190,29 @@ class ReportsTab(QWidget):
                 return
 
             self.approved_members = []
+            self.member_dropdown.clear()  # Clear existing items
+            self.member_dropdown.addItem("Select Member")  # First item with no data
+            
             for m in members:
                 if len(m) > 3:
                     member_number, member_name, loan_type, loan_status = m[0], m[1], m[2], m[3]
                     if loan_status and loan_status.lower() == 'approved':
                         display_text = f"{member_number} - {member_name or 'N/A'} ({loan_type or 'N/A'})"
                         self.approved_members.append(display_text)
-                        logging.debug(f"Added to completer: {display_text}")
+                        # **ADD THIS LINE** - Set the member_number as itemData
+                        self.member_dropdown.addItem(display_text, member_number)
+                        logging.debug(f"Added to dropdown: {display_text} with data: {member_number}")
 
             # Set up QCompleter
             completer = QCompleter(self.approved_members, self)
             completer.setCaseSensitivity(Qt.CaseInsensitive)
-            completer.setFilterMode(Qt.MatchContains)  # Match anywhere in the string
+            completer.setFilterMode(Qt.MatchContains)
             self.member_dropdown.setCompleter(completer)
-            logging.debug(f"Populated completer with {len(self.approved_members)} approved members")
+            logging.debug(f"Populated dropdown with {len(self.approved_members)} approved members")
         except Exception as e:
-            logging.error(f"Error populating approved members for completer: {e}")
+            logging.error(f"Error populating approved members: {e}")
             self.show_status_message("Failed to load approved member suggestions")
+
 
     def on_member_selected_dropdown(self, index):
         if index > 0:
@@ -201,7 +238,9 @@ class ReportsTab(QWidget):
                 logging.warning(f"Invalid display text format: {display_text}, falling back to default")
                 member_name = "Unknown"
 
-            current_session["member_number"] = member_number if member_number else display_text.split(" - ")[0].strip()
+            # ✅ ADD THIS - Ensure consistent padding
+            raw_member_number = member_number if member_number else display_text.split(" - ")[0].strip()
+            current_session["member_number"] = str(raw_member_number).strip().zfill(9)
             current_session["member_name"] = member_name
             logging.debug(f"Selected member: {current_session.get('member_number')} - {member_name}")
             self.update_session_label()
@@ -328,9 +367,11 @@ class ReportsTab(QWidget):
         layout.addRow(self.radio_select_all)
 
         documents = [
-            ("Tamasuk", "checkbox_tamasuk", "tamasuk_template_button", self.select_tamasuk_template),
-            ("Loan Approval", "checkbox_loan_approval", "btn_loan_approval_template", self.choose_loan_approval_template),
-            ("Debit Authority", "checkbox_debit_authority", "btn_debit_authority", self.choose_debit_authority_template)
+            ("Tamasuk | तमासुक", "checkbox_tamasuk", "tamasuk_template_button", self.select_tamasuk_template),
+            ("Loan Approval | ऋण स्वीकृत", "checkbox_loan_approval", "btn_loan_approval_template", self.choose_loan_approval_template),
+            ("Debit Authority | खाता अख्तियारी", "checkbox_debit_authority", "btn_debit_authority", self.choose_debit_authority_template),
+            (" Consent | मञ्जुरीनामा", "checkbox_manjurinaama", "btn_manjurinaama_template", self.choose_manjurinaama_template),  # New
+            ("Personal Gurantee | व्यक्तिगत जमानी", "checkbox_guarantor", "btn_guarantor_template", self.choose_guarantor_template)       # New
         ]
 
         for doc_name, checkbox_attr, button_attr, handler in documents:
@@ -472,10 +513,28 @@ class ReportsTab(QWidget):
             self.btn_debit_authority.setText(filename)
             self.validate_inputs()
 
+    def choose_manjurinaama_template(self):  # New
+        path, _ = QFileDialog.getOpenFileName(self, "Select मञ्जुरीनामा Template", "", "Word Documents (*.docx)")
+        if path:
+            self.manjurinaama_template_path = path
+            filename = os.path.basename(path)
+            self.btn_manjurinaama_template.setText(filename)
+            self.validate_inputs()
+
+    def choose_guarantor_template(self):     # New
+        path, _ = QFileDialog.getOpenFileName(self, "Select व्यक्तिगत जमानी Template", "", "Word Documents (*.docx)")
+        if path:
+            self.guarantor_template_path = path
+            filename = os.path.basename(path)
+            self.btn_guarantor_template.setText(filename)
+            self.validate_inputs()
+
     def toggle_all_documents(self, checked):
         self.checkbox_tamasuk.setChecked(checked)
         self.checkbox_loan_approval.setChecked(checked)
         self.checkbox_debit_authority.setChecked(checked)
+        self.checkbox_manjurinaama.setChecked(checked)    # New
+        self.checkbox_guarantor.setChecked(checked)       # New
 
     def clear_selection(self):
         self.member_dropdown.setCurrentIndex(0)
@@ -497,9 +556,15 @@ class ReportsTab(QWidget):
         self.btn_loan_approval_template.setText("Choose Template")
         self.authority_template_path = None
         self.btn_debit_authority.setText("Choose Template")
+        self.manjurinaama_template_path = None             # New
+        self.btn_manjurinaama_template.setText("Choose Template")  # New
+        self.guarantor_template_path = None                # New
+        self.btn_guarantor_template.setText("Choose Template")     # New
         self.checkbox_tamasuk.setChecked(False)
         self.checkbox_loan_approval.setChecked(False)
         self.checkbox_debit_authority.setChecked(False)
+        self.checkbox_manjurinaama.setChecked(False)       # New
+        self.checkbox_guarantor.setChecked(False)          # New
         self.radio_select_all.setChecked(False)
         self.show_status_message("All selections cleared")
         self.update_session_label()
@@ -524,6 +589,7 @@ class ReportsTab(QWidget):
             logging.warning("btn_generate_report not initialized in validate_inputs")
 
     def generate_report(self):
+        logging.debug(f"Selected member_number: {current_session.get('member_number')}")
         entered_by_name = current_session.get("entered_by", "")
         entered_by_post = current_session.get("entered_by_post", "")
         approved_by_name = current_session.get("approved_by", "")
@@ -533,9 +599,11 @@ class ReportsTab(QWidget):
         nepali_today = nepali_date.today()
         nepali_date_str = nepali_today.strftime('%Y%m%d')
 
+        logging.debug(f"About to call prepare_report_context with member_number: {member_number}")
+
+        # Prepare base context
         data = prepare_report_context(
-            member_number, entered_by_name, entered_by_post,
-            approved_by_name, approved_by_post
+            member_number, entered_by_name, entered_by_post, approved_by_name, approved_by_post
         )
         if not data:
             self.show_status_message("No data found for the selected member")
@@ -567,13 +635,21 @@ class ReportsTab(QWidget):
 
         # Generate Additional Documents
         extra_docs = [
-            ("Tamasuk", self.checkbox_tamasuk, self.tamasuk_template_path),
-            ("Loan Approval", self.checkbox_loan_approval, self.loan_approval_template_path),
-            ("Debit Authority", self.checkbox_debit_authority, self.authority_template_path)
+            ("Tamasuk", self.checkbox_tamasuk, self.tamasuk_template_path, prepare_report_context),
+            ("Loan Approval", self.checkbox_loan_approval, self.loan_approval_template_path, prepare_report_context),
+            ("Debit Authority", self.checkbox_debit_authority, self.authority_template_path, prepare_report_context),
+            ("मञ्जुरीनामा", self.checkbox_manjurinaama, self.manjurinaama_template_path, prepare_report_context),
+            ("व्यक्तिगत जमानी", self.checkbox_guarantor, self.guarantor_template_path, prepare_report_context)
         ]
-        for doc_name, checkbox, template_path in extra_docs:
+        for doc_name, checkbox, template_path, context_func in extra_docs:
             if checkbox.isChecked() and template_path:
                 try:
+                    data = context_func(member_number) if context_func != prepare_report_context else context_func(
+                        member_number, entered_by_name, entered_by_post, approved_by_name, approved_by_post
+                    )
+                    if not data:
+                        self.show_status_message(f"No data found for {doc_name}")
+                        continue
                     tpl = DocxTemplate(template_path)
                     tpl.render(data)
                     folder_path = os.path.join("generated reports", doc_name)
@@ -592,12 +668,6 @@ class ReportsTab(QWidget):
                 except Exception as e:
                     self.show_status_message(f"Failed to generate {doc_name}: {e}")
                     logging.error(f"Error generating {doc_name}: {e}")
-
-        main_window = self.window()
-        if hasattr(main_window, 'history_tab') and hasattr(main_window.history_tab, 'refresh_table'):
-            main_window.history_tab.refresh_table()
-        if hasattr(self.parentWidget(), 'refresh_member_header_in_all_tabs'):
-            self.parentWidget().refresh_member_header_in_all_tabs()
 
     def show_status_message(self, message):
         window = QApplication.instance().activeWindow()

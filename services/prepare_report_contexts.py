@@ -11,8 +11,10 @@ from services.report_fetchers import (
     fetch_income_expense,
     fetch_project_detail,
     fetch_approval_info,
-    fetch_witness_detail
+    fetch_witness_detail,
+    fetch_guarantor_details
 )
+from models.database import get_connection
 import logging
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -75,6 +77,7 @@ def prepare_report_context(member_number, entered_by_name="", entered_by_post=""
         project_details = fetch_project_detail(member_number) or []
         approval_data = fetch_approval_info(member_number) or {}
         witnesses = fetch_witness_detail(member_number) or []
+        guarantors = fetch_guarantor_details(member_number) or []
 
         logging.debug(f"✅ Member Info: {member_info}")
         logging.debug(f"✅ Loan Info: {loan_info}")
@@ -118,9 +121,55 @@ def prepare_report_context(member_number, entered_by_name="", entered_by_post=""
         for w in witnesses:
             if "age" in w:
                 w['age'] = convert_to_nepali_digits(str(w['age'])) if w['age'] is not None else ""
+        
 
-        # Build context with explicit None handling
-        context = {
+        # Process guarantor details 
+        for g in guarantors:
+            if "guarantor_age" in g and g["guarantor_age"] is not None:
+                g['guarantor_age'] = convert_to_nepali_digits(str(g['guarantor_age']))
+            if "guarantor_ward" in g and g["guarantor_ward"] is not None:
+                g['guarantor_ward'] = convert_to_nepali_digits(str(g['guarantor_ward']))
+            if "guarantor_phone" in g and g["guarantor_phone"] is not None:
+                g['guarantor_phone'] = convert_to_nepali_digits(str(g['guarantor_phone']))
+            if "guarantor_citizenship" in g and g["guarantor_citizenship"] is not None:
+                g['guarantor_citizenship'] = convert_to_nepali_digits(str(g['guarantor_citizenship']))
+        # Fetch manjurinama_details from db to use in template
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM manjurinama_details
+            WHERE member_number = ?
+        """, (member_number,))
+        manjurinama_data = cursor.fetchone()
+        conn.close()
+
+        manjurinama_details = {}
+        if manjurinama_data:
+            manjurinama_details = dict(zip([desc[0] for desc in cursor.description], manjurinama_data))
+            if "age" in manjurinama_details and manjurinama_details["age"] is not None:
+                manjurinama_details["manjuri_age"] = convert_to_nepali_digits(str(manjurinama_details["age"]))
+                del manjurinama_details["age"]  # Avoid overriding m_age_np
+            
+            # Rename grandfather_name and father_name to avoid clash
+            if "grandfather_name" in manjurinama_details:
+                manjurinama_details["manjuri_grandfather_name"] = manjurinama_details["grandfather_name"]
+                del manjurinama_details["grandfather_name"]
+            if "father_name" in manjurinama_details:
+                manjurinama_details["manjuri_father_name"] = manjurinama_details["father_name"]
+                del manjurinama_details["father_name"]
+            if "municipality" in manjurinama_details:
+                manjurinama_details["manjuri_municipality"] = manjurinama_details["municipality"]
+                del manjurinama_details["municipality"]
+            if "ward_no" in manjurinama_details:
+                manjurinama_details["manjuri_ward_no"] = manjurinama_details["ward_no"]
+                del manjurinama_details["ward_no"]
+            if "tole" in manjurinama_details:
+                manjurinama_details["manjuri_tole"] = manjurinama_details["tole"]
+                del manjurinama_details["tole"]
+
+
+        # Build base context with explicit None handling
+        base_context = {
             **member_info,
             **loan_info,
             **approval_data,
@@ -157,13 +206,22 @@ def prepare_report_context(member_number, entered_by_name="", entered_by_post=""
             "bs_year_lastdate": convert_to_nepali_digits(str(loan_info.get("loan_completion_year", ""))) if loan_info.get("loan_completion_year") is not None else "",
             "bs_month_lastdate": convert_to_nepali_digits(str(loan_info.get("loan_completion_month", ""))) if loan_info.get("loan_completion_month") is not None else "",
             "bs_day_lastdate": convert_to_nepali_digits(str(loan_info.get("loan_completion_day", ""))) if loan_info.get("loan_completion_day") is not None else "",
-            "witnesses": witnesses
+            "witnesses": witnesses,
+            "guarantors": guarantors,
+            # Additional fields from member_info
+            "grandfather_name": member_info.get("grandfather_name", "") or "",
+            "father_name": member_info.get("father_name", "") or "",
+            # "age": age_nep,
+            # Additional from loan_info
+            "loan_type": loan_info.get("loan_type", "") or "",
+            # From manjurinama_details
+            **manjurinama_details
         }
 
-        logging.debug(f"🔑 Context Keys Available: {context.keys()}")
-        logging.debug(f"✅ m_age_np: {context['m_age_np']}")
-        logging.debug(f"✅ spouse_phone: {context['spouse_phone']}")
-        logging.debug(f"✅ Approved Date BS: {context['approved_date_bs']}")
+        logging.debug(f"🔑 Context Keys Available: {base_context.keys()}")
+        logging.debug(f"✅ m_age_np: {base_context['m_age_np']}")
+        logging.debug(f"✅ spouse_phone: {base_context['spouse_phone']}")
+        logging.debug(f"✅ Approved Date BS: {base_context['approved_date_bs']}")
         logging.debug(f"Collateral Basic: {collateral_basic}")
         logging.debug("🧪 Affiliation Data:")
         for aff in affiliations:
@@ -172,7 +230,7 @@ def prepare_report_context(member_number, entered_by_name="", entered_by_post=""
         for prop in properties:
             logging.debug(prop)
 
-        return context
+        return base_context
     except Exception as e:
         logging.error(f"Error preparing report context for member_number {member_number}: {e}")
         return {}

@@ -9,6 +9,8 @@ from utils.converter import convert_to_nepali_digits
 from utils.amount_to_words import convert_number_to_nepali_words
 from models.loan_scheme_model import fetch_all_loan_schemes
 from ui.widgets.witness_form import WitnessForm
+from ui.widgets.manjurinama_form import ManjurinamaForm
+from ui.widgets.guranteer_form import GuranteerFormDialog
 from context import current_session
 from signal_bus import signal_bus
 from styles.app_styles import AppStyles
@@ -175,10 +177,21 @@ class LoanInfoTab(QWidget):
         button_layout.addWidget(self.next_button)
 
         self.witness_button = QPushButton("➕ साक्षी विवरण थप्नुहोस्")
-        self.witness_button.setMinimumHeight(AppStyles.BUTTON_HEIGHT)
+        self.witness_button.setMinimumHeight(int(AppStyles.BUTTON_HEIGHT // 1.5))
         self.witness_button.clicked.connect(self.open_witness_form)
         button_layout.addWidget(self.witness_button)
 
+        self.manjurinama_btn = QPushButton("➕ मञ्जुरीनामा विवरण")
+        self.manjurinama_btn.setMinimumHeight(int(AppStyles.BUTTON_HEIGHT // 1.5))
+        self.manjurinama_btn.clicked.connect(self.open_manjurinama_dialog)
+        button_layout.addWidget(self.manjurinama_btn)
+
+        self.guarantor_btn = QPushButton("➕ जमानी विवरण")
+        self.guarantor_btn.setMinimumHeight(int(AppStyles.BUTTON_HEIGHT // 1.5))
+        self.guarantor_btn.clicked.connect(self.open_guarantor_dialog)
+        button_layout.addWidget(self.guarantor_btn)
+
+        button_layout.addStretch()
         self.form_layout.addRow(button_layout)
         main_layout.addWidget(scroll)
         self.setLayout(main_layout)
@@ -200,6 +213,8 @@ class LoanInfoTab(QWidget):
                 widget.setEnabled(enabled)
         self.witness_button.setEnabled(enabled)
         self.next_button.setEnabled(enabled)
+        self.manjurinama_btn.setEnabled(enabled)
+        self.guarantor_btn.setEnabled(enabled)
 
     def update_completer(self, text):
         """Update member search suggestions"""
@@ -316,4 +331,12 @@ class LoanInfoTab(QWidget):
     
     def open_witness_form(self):
         dialog = WitnessForm()
+        dialog.exec_()
+
+    def open_manjurinama_dialog(self):
+        dialog = ManjurinamaForm(self)
+        dialog.exec_()
+
+    def open_guarantor_dialog(self):
+        dialog = GuranteerFormDialog(self)
         dialog.exec_()
